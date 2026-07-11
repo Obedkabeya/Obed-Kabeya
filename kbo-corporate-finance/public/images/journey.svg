@@ -1,0 +1,11 @@
+<svg viewBox="0 0 500 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Parcours académique et professionnel">
+  <rect width="500" height="400" fill="#f6f8fc"/>
+  <path d="M60 330 C 160 330, 160 200, 250 200 S 340 70, 440 70" fill="none" stroke="#c9d3e6" stroke-width="3" stroke-linecap="round"/>
+  <g font-family="Arial, sans-serif" font-size="10" fill="#5b6472" text-anchor="middle">
+    <g><circle cx="60" cy="330" r="9" fill="#fff" stroke="#1f4f9c" stroke-width="2.5"/><text x="60" y="360">Latin-Philo</text></g>
+    <g><circle cx="180" cy="262" r="9" fill="#fff" stroke="#1f4f9c" stroke-width="2.5"/><text x="180" y="292">Exégèse &amp; Droit</text></g>
+    <g><circle cx="250" cy="200" r="9" fill="#fff" stroke="#1f4f9c" stroke-width="2.5"/><text x="250" y="176">Banque &amp; Finance</text></g>
+    <g><circle cx="330" cy="132" r="9" fill="#fff" stroke="#1f4f9c" stroke-width="2.5"/><text x="330" y="112">Finance de marché</text></g>
+    <g><circle cx="440" cy="70" r="12" fill="#0a1f44"/><text x="440" y="46">Trading · 10 ans</text></g>
+  </g>
+</svg>
