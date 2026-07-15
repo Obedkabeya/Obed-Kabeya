@@ -19,17 +19,48 @@
       <p class="breadcrumb reveal"><a href="professionnel.html">Professionnel</a> · Service 01</p>
       <div class="svc-hero">
         <div class="reveal">
-          <p class="eyebrow">Formation</p>
-          <h1>Finance des marchés</h1>
+          <p class="eyebrow">Formations</p>
+          <h1>Deux formations, une exigence</h1>
           <hr class="divider" />
-          <p class="lead">Une formation exigeante pour apprendre à lire les marchés, gérer le risque et bâtir une discipline durable — transmise par un trader en activité depuis dix ans.</p>
+          <p class="lead">Deux parcours distincts, transmis par un trader en activité depuis dix ans : la <strong>finance des marchés</strong>, orientée professionnels, et le <strong>trading</strong>, en abonnement mensuel ou annuel.</p>
           <div class="hero__cta">
-            <a class="btn btn--primary" href="#inscription">Déposer une candidature <span class="arrow">→</span></a>
+            <a class="btn btn--primary" href="#tarifs">Voir les formations <span class="arrow">→</span></a>
           </div>
         </div>
-        <div class="svc-hero__media reveal">
-          <img src="images/training.svg" alt="Illustration d'une formation en finance des marchés" />
+        <div class="svc-hero__media reveal" data-slot="formation-hero">
+          <img src="images/training.svg" alt="Illustration des formations" />
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LES DEUX FORMATIONS + TARIFS -->
+  <section class="section section--soft" id="tarifs">
+    <div class="container">
+      <div class="center reveal" style="max-width:660px;margin-inline:auto;margin-bottom:2.6rem">
+        <p class="eyebrow">Nos formations</p>
+        <h2>Choisissez votre parcours</h2>
+        <hr class="divider" style="margin-inline:auto" />
+        <p class="muted">Deux formations distinctes, chacune avec son rythme et son tarif.</p>
+      </div>
+      <div class="pricing">
+        <article class="price-card reveal">
+          <span class="price-card__badge">Pour les professionnels</span>
+          <h3>Finance des marchés</h3>
+          <p class="price-card__desc">Comprendre en profondeur le fonctionnement des marchés, l'analyse et la gestion du risque — un cursus complet destiné à un usage professionnel.</p>
+          <div class="price-card__price"><span class="amount">900&nbsp;€</span></div>
+          <p class="price-card__terms">Paiement possible en <strong>3 tranches</strong></p>
+          <a class="btn btn--primary" href="candidature.html?formation=Finance des marchés">Déposer une candidature <span class="arrow">→</span></a>
+        </article>
+
+        <article class="price-card price-card--accent reveal">
+          <span class="price-card__badge">Abonnement</span>
+          <h3>Trading</h3>
+          <p class="price-card__desc">Apprendre à trader concrètement, avec un accompagnement continu. Formule souple, mensuelle ou annuelle, pour progresser à votre rythme.</p>
+          <div class="price-card__price"><span class="amount">89&nbsp;€</span><span class="per">/ mois</span></div>
+          <p class="price-card__terms">ou <strong>800&nbsp;€ / an</strong> par abonnement</p>
+          <a class="btn btn--primary" href="candidature.html?formation=Trading">Déposer une candidature <span class="arrow">→</span></a>
+        </article>
       </div>
     </div>
   </section>
@@ -44,7 +75,7 @@
           <hr class="divider" />
           <p class="muted">Cette formation couvre les fondamentaux des marchés financiers (actions, devises, matières premières, dérivés), l'analyse technique et fondamentale, la construction d'une stratégie, et surtout la <strong>gestion du risque et la psychologie du trader</strong>. Vous n'apprenez pas seulement des théories : vous acquérez une méthode de travail.</p>
         </div>
-        <div class="feature__media reveal"><img src="images/markets.svg" alt="Concepts de marché" /></div>
+        <div class="feature__media reveal" data-slot="formation-1"><img src="images/markets.svg" alt="Concepts de marché" /></div>
       </div>
 
       <div class="feature feature--rev">
@@ -54,7 +85,7 @@
           <hr class="divider" />
           <p class="muted">La plupart des pertes ne viennent pas d'un manque d'intelligence, mais d'un manque de méthode et de discipline. Se former sérieusement, c'est se donner les moyens de durer : protéger son capital, décider avec sang-froid et transformer l'incertitude en avantage.</p>
         </div>
-        <div class="feature__media reveal"><img src="images/strategy.svg" alt="Discipline et stratégie" /></div>
+        <div class="feature__media reveal" data-slot="formation-2"><img src="images/strategy.svg" alt="Discipline et stratégie" /></div>
       </div>
 
       <div class="reveal" style="margin-top:2rem">
@@ -95,97 +126,16 @@
     </div>
   </section>
 
-  <!-- INSCRIPTION (demanding) -->
-  <section class="section" id="inscription">
-    <div class="container narrow">
-      <div class="center reveal" style="margin-bottom:2rem">
-        <span class="badge-serious">Sélection exigeante</span>
-        <h2 style="margin-top:1rem">Dossier de candidature</h2>
-        <hr class="divider" style="margin-inline:auto" />
-        <p class="muted">Les places sont limitées et sélectionnées avec soin. Ce formulaire vise à évaluer la sériosité, la motivation et la préparation de chaque candidat. Prenez le temps de répondre avec précision.</p>
-      </div>
-
-      <div class="form-wrap reveal">
-        <form id="formationForm" data-endpoint="/api/apply/formation" data-kind="Candidature — Formation">
-          <div class="form-grid">
-            <div class="field"><label for="f_name">Nom complet <span class="req">*</span></label><input id="f_name" name="nom" type="text" required /></div>
-            <div class="field"><label for="f_email">Adresse e-mail <span class="req">*</span></label><input id="f_email" name="email" type="email" required /></div>
-            <div class="field"><label for="f_phone">Téléphone <span class="req">*</span></label><input id="f_phone" name="telephone" type="tel" required /></div>
-            <div class="field"><label for="f_country">Pays de résidence <span class="req">*</span></label><input id="f_country" name="pays" type="text" required /></div>
-
-            <div class="field field--full">
-              <label for="f_edu">Quel est votre parcours académique&nbsp;? <span class="req">*</span></label>
-              <select id="f_edu" name="parcours_academique" required>
-                <option value="" disabled selected>Sélectionnez…</option>
-                <option>Secondaire / Baccalauréat</option>
-                <option>Licence / Bachelor</option>
-                <option>Master / Grande école</option>
-                <option>Doctorat</option>
-                <option>Formation professionnelle</option>
-                <option>Autodidacte</option>
-              </select>
-            </div>
-
-            <div class="field">
-              <label for="f_field">Domaine d'études / d'activité <span class="req">*</span></label>
-              <input id="f_field" name="domaine" type="text" required placeholder="Finance, ingénierie, droit…" />
-            </div>
-            <div class="field">
-              <label for="f_level">Votre niveau actuel en finance de marché <span class="req">*</span></label>
-              <select id="f_level" name="niveau" required>
-                <option value="" disabled selected>Sélectionnez…</option>
-                <option>Aucun — débutant complet</option>
-                <option>Notions de base</option>
-                <option>Intermédiaire — je trade déjà</option>
-                <option>Avancé</option>
-              </select>
-            </div>
-
-            <div class="field field--full">
-              <label for="f_why">Pourquoi souhaitez-vous vous former en finance des marchés&nbsp;? <span class="req">*</span></label>
-              <textarea id="f_why" name="motivation" required minlength="120" placeholder="Expliquez vos motivations profondes, ce qui vous attire dans les marchés et pourquoi maintenant."></textarea>
-              <span class="hint">Minimum 120 caractères. Soyez sincère et précis.</span>
-            </div>
-
-            <div class="field field--full">
-              <label for="f_goal">Quelles sont vos intentions et vos objectifs&nbsp;? <span class="req">*</span></label>
-              <textarea id="f_goal" name="objectifs" required minlength="120" placeholder="Que comptez-vous faire de cette formation ? Objectifs à 6 mois, 1 an, 3 ans ?"></textarea>
-              <span class="hint">Minimum 120 caractères.</span>
-            </div>
-
-            <div class="field">
-              <label for="f_time">Temps hebdomadaire que vous pouvez consacrer <span class="req">*</span></label>
-              <select id="f_time" name="disponibilite" required>
-                <option value="" disabled selected>Sélectionnez…</option>
-                <option>Moins de 5 h</option>
-                <option>5 à 10 h</option>
-                <option>10 à 20 h</option>
-                <option>Plus de 20 h</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="f_capital">Êtes-vous prêt à suivre une discipline stricte&nbsp;? <span class="req">*</span></label>
-              <select id="f_capital" name="engagement" required>
-                <option value="" disabled selected>Sélectionnez…</option>
-                <option>Oui, pleinement</option>
-                <option>Oui, avec accompagnement</option>
-                <option>Je ne suis pas certain</option>
-              </select>
-            </div>
-
-            <div class="field field--full">
-              <label class="stack" style="flex-direction:row;align-items:flex-start;gap:.6rem;font-weight:400;color:var(--gray)">
-                <input type="checkbox" name="serment" required style="margin-top:.35rem;width:auto" />
-                <span>Je certifie que mes réponses sont sincères et je m'engage à suivre la formation avec sérieux et assiduité. <span class="req">*</span></span>
-              </label>
-            </div>
-          </div>
-          <div class="form-actions">
-            <button class="btn btn--primary" type="submit">Envoyer ma candidature <span class="arrow">→</span></button>
-            <span class="form-msg" id="formationMsg"></span>
-          </div>
-          <p class="form-note">Chaque dossier est étudié personnellement. Une réponse vous sera adressée par e-mail.</p>
-        </form>
+  <!-- APPEL À CANDIDATURE -->
+  <section class="section" id="candidature">
+    <div class="container narrow center reveal">
+      <span class="badge-serious">Sélection exigeante</span>
+      <h2 style="margin-top:1rem">Prêt à déposer votre candidature&nbsp;?</h2>
+      <hr class="divider" style="margin-inline:auto" />
+      <p class="muted">Les places sont limitées et sélectionnées avec soin. Le dossier de candidature se remplit sur une page dédiée.</p>
+      <div style="margin-top:1.6rem;display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+        <a class="btn btn--primary" href="candidature.html?formation=Finance des marchés">Candidater — Finance des marchés <span class="arrow">→</span></a>
+        <a class="btn btn--ghost" href="candidature.html?formation=Trading">Candidater — Trading <span class="arrow">→</span></a>
       </div>
     </div>
   </section>

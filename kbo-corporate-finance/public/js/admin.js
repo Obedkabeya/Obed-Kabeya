@@ -1,8 +1,7 @@
-/* KBO admin dashboard: settings (identité/textes/réseaux), blog & histoires, médias. */
+/* KBO admin dashboard — authentification par session (cookie). Aucune donnée
+   sensible en localStorage : le cookie HttpOnly est envoyé automatiquement. */
 (function () {
   const $ = (id) => document.getElementById(id);
-  const KEY = "kbo_admin_pw";
-  let pw = localStorage.getItem(KEY) || "";
 
   const loginPane = $("loginPane"), dashboard = $("dashboard");
   const loginForm = $("loginForm"), loginMsg = $("loginMsg");
@@ -17,38 +16,42 @@
     t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 3200);
   }
 
-  // ---------- raw upload (images + vidéos) ----------
+  // ---------- raw upload (images + vidéos) — cookie de session envoyé auto ----------
   function uploadRaw(file) {
     return fetch("/api/upload-raw", {
       method: "POST",
-      headers: { "X-Admin-Password": pw, "X-Filename": encodeURIComponent(file.name), "Content-Type": file.type || "application/octet-stream" },
+      headers: { "X-Filename": encodeURIComponent(file.name), "Content-Type": file.type || "application/octet-stream" },
       body: file,
     }).then(r => r.json().then(j => { if (!r.ok) throw new Error(j.error || "Upload impossible."); return j; }));
   }
 
-  // ---------- auth ----------
+  // ---------- auth (session) ----------
   function showDashboard() {
     loginPane.hidden = true; dashboard.hidden = false;
     loadSettings(); loadArticles(); loadMedia();
   }
-  if (pw) {
-    fetch("/api/admin/verify", { headers: { "X-Admin-Password": pw } })
-      .then(r => { if (r.ok) showDashboard(); else localStorage.removeItem(KEY); }).catch(() => {});
-  }
+  // Déjà connecté ? (cookie de session valide côté serveur)
+  fetch("/api/me").then(r => r.json()).then(m => { if (m.role === "admin") showDashboard(); }).catch(() => {});
+
   loginForm.addEventListener("submit", (e) => {
     e.preventDefault();
     const val = $("pw").value;
     loginMsg.textContent = "Vérification…"; loginMsg.className = "form-msg";
-    fetch("/api/admin/verify", { headers: { "X-Admin-Password": val } })
-      .then(r => {
-        if (r.ok) { pw = val; localStorage.setItem(KEY, pw); loginMsg.textContent = ""; showDashboard(); }
-        else { loginMsg.textContent = "Mot de passe incorrect."; loginMsg.className = "form-msg err"; }
+    fetch("/api/login", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: val }),
+    })
+      .then(r => r.json().then(j => ({ ok: r.ok, j })))
+      .then(({ ok, j }) => {
+        if (ok && j.role === "admin") { loginMsg.textContent = ""; $("pw").value = ""; showDashboard(); }
+        else { loginMsg.textContent = j.error || "Mot de passe incorrect."; loginMsg.className = "form-msg err"; }
       })
       .catch(() => { loginMsg.textContent = "Serveur injoignable. Démarrez « python3 server.py »."; loginMsg.className = "form-msg err"; });
   });
   $("logoutBtn").addEventListener("click", () => {
-    localStorage.removeItem(KEY); pw = "";
-    dashboard.hidden = true; loginPane.hidden = false; $("pw").value = "";
+    fetch("/api/logout", { method: "POST" }).finally(() => {
+      dashboard.hidden = true; loginPane.hidden = false; $("pw").value = "";
+    });
   });
 
   // ---------- tabs ----------
@@ -106,7 +109,7 @@
     const social = {}; SOCIAL.forEach(k => { social[k] = $(k).value.trim(); });
     const payload = { email: $("email").value.trim(), photo: currentPhoto, social, texts };
     $("saveBtn").disabled = true; $("saveMsg").textContent = "Enregistrement…"; $("saveMsg").className = "form-msg";
-    fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json", "X-Admin-Password": pw }, body: JSON.stringify(payload) })
+    fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
       .then(r => r.json().then(j => ({ ok: r.ok, j })))
       .then(({ ok, j }) => {
         if (!ok) throw new Error(j.error || "Erreur d'enregistrement.");
@@ -155,7 +158,7 @@
     e.preventDefault();
     const data = Object.fromEntries(new FormData($("articleForm")).entries());
     $("articleMsg").textContent = "Publication…"; $("articleMsg").className = "form-msg";
-    fetch("/api/articles", { method: "POST", headers: { "Content-Type": "application/json", "X-Admin-Password": pw }, body: JSON.stringify(data) })
+    fetch("/api/articles", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) })
       .then(r => r.json().then(j => ({ ok: r.ok, j })))
       .then(({ ok, j }) => {
         if (!ok) throw new Error(j.error || "Erreur");
@@ -190,7 +193,7 @@
         </div>`).join("");
       list.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", () => {
         if (!confirm("Supprimer cette publication ?")) return;
-        fetch(`/api/articles/${encodeURIComponent(b.dataset.del)}`, { method: "DELETE", headers: { "X-Admin-Password": pw } })
+        fetch(`/api/articles/${encodeURIComponent(b.dataset.del)}`, { method: "DELETE" })
           .then(r => { if (!r.ok) throw new Error(); loadArticles(); }).catch(() => alert("Suppression impossible."));
       }));
     }).catch(() => { list.innerHTML = `<p class="form-msg err">Chargement impossible.</p>`; });
@@ -213,7 +216,7 @@
 
   let mediaCache = [];
   function loadMedia() {
-    fetch("/api/media", { headers: { "X-Admin-Password": pw } }).then(r => r.json()).then(items => {
+    fetch("/api/media").then(r => r.json()).then(items => {
       mediaCache = Array.isArray(items) ? items : [];
       const grid = $("mediaGrid");
       if (!mediaCache.length) { grid.innerHTML = `<p class="muted">Aucun média. Téléversez votre première image ou vidéo.</p>`; return; }
@@ -225,7 +228,7 @@
       }));
       grid.querySelectorAll(".del").forEach(b => b.addEventListener("click", () => {
         if (!confirm("Supprimer ce média ?")) return;
-        fetch(`/api/media/${encodeURIComponent(b.dataset.name)}`, { method: "DELETE", headers: { "X-Admin-Password": pw } })
+        fetch(`/api/media/${encodeURIComponent(b.dataset.name)}`, { method: "DELETE" })
           .then(r => { if (!r.ok) throw new Error(); loadMedia(); }).catch(() => alert("Suppression impossible."));
       }));
     }).catch(() => { $("mediaGrid").innerHTML = `<p class="form-msg err">Chargement impossible.</p>`; });
@@ -265,7 +268,7 @@
       const file = input.files[0]; if (!file) return;
       uploadRaw(file)
         .then(up => fetch("/api/settings/image", {
-          method: "POST", headers: { "Content-Type": "application/json", "X-Admin-Password": pw },
+          method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ key, path: up.path }),
         }).then(r => r.json().then(j => { if (!r.ok) throw new Error(j.error); return up; })))
         .then(up => { $(key + "Preview").src = up.path; loadMedia(); showToast("Photo de la biographie mise à jour"); })
@@ -304,7 +307,7 @@
     $("galPublish").disabled = true; $("galMsg").textContent = "Publication…"; $("galMsg").className = "form-msg";
     uploadRaw(galFileSel)
       .then(up => fetch("/api/gallery", {
-        method: "POST", headers: { "Content-Type": "application/json", "X-Admin-Password": pw },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path: up.path, kind: isVideo ? "video" : "image", orientation: orient, caption: $("galCaption").value.trim(), published: true }),
       }).then(r => r.json().then(j => { if (!r.ok) throw new Error(j.error); return j; })))
       .then(() => {
@@ -321,7 +324,7 @@
 
   function loadGalleryAdmin() {
     const grid = $("galAdminGrid");
-    fetch("/api/gallery?all=1", { headers: { "X-Admin-Password": pw } }).then(r => r.json()).then(items => {
+    fetch("/api/gallery?all=1").then(r => r.json()).then(items => {
       if (!Array.isArray(items) || !items.length) { grid.innerHTML = `<p class="muted">Aucun élément. Publiez votre première photo ou vidéo.</p>`; return; }
       grid.innerHTML = items.map(g => {
         const thumb = g.kind === "video"
@@ -338,21 +341,72 @@
       }).join("");
       grid.querySelectorAll(".pub").forEach(b => b.addEventListener("click", () => {
         fetch(`/api/gallery/${encodeURIComponent(b.dataset.id)}`, {
-          method: "POST", headers: { "Content-Type": "application/json", "X-Admin-Password": pw },
+          method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ published: b.dataset.pub !== "1" }),
         }).then(r => { if (!r.ok) throw new Error(); loadGalleryAdmin(); }).catch(() => alert("Action impossible."));
       }));
       grid.querySelectorAll(".del").forEach(b => b.addEventListener("click", () => {
         if (!confirm("Supprimer cet élément de la galerie ?")) return;
-        fetch(`/api/gallery/${encodeURIComponent(b.dataset.id)}`, { method: "DELETE", headers: { "X-Admin-Password": pw } })
+        fetch(`/api/gallery/${encodeURIComponent(b.dataset.id)}`, { method: "DELETE" })
           .then(r => { if (!r.ok) throw new Error(); loadGalleryAdmin(); }).catch(() => alert("Suppression impossible."));
       }));
     }).catch(() => { grid.innerHTML = `<p class="form-msg err">Chargement impossible.</p>`; });
   }
 
+  // ---------- compte : e-mail (SMTP) + mot de passe ----------
+  function loadMailConfig() {
+    fetch("/api/mailconfig")
+      .then(r => r.json()).then(c => {
+        if (c.host) $("mailHost").value = c.host;
+        if (c.port) $("mailPort").value = c.port;
+        if (c.user) $("mailUser").value = c.user;
+        $("mailPassHint").textContent = c.hasPass
+          ? "✓ Un mot de passe est déjà enregistré. Laissez vide pour le conserver."
+          : "Aucun mot de passe enregistré pour l'instant.";
+        $("mailMsg").textContent = c.active ? "✓ L'envoi d'e-mail est actif." : "";
+        $("mailMsg").className = c.active ? "form-msg ok" : "form-msg";
+      }).catch(() => {});
+  }
+  $("mailSave").addEventListener("click", () => {
+    $("mailMsg").textContent = "Enregistrement…"; $("mailMsg").className = "form-msg";
+    fetch("/api/mailconfig", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ host: $("mailHost").value.trim(), port: $("mailPort").value.trim(), user: $("mailUser").value.trim(), pass: $("mailPass").value }),
+    }).then(r => r.json().then(j => ({ ok: r.ok, j }))).then(({ ok, j }) => {
+      if (!ok) throw new Error(j.error || "Erreur");
+      $("mailPass").value = "";
+      $("mailMsg").textContent = j.active ? "✓ Enregistré — envoi actif." : "Enregistré. Renseignez l'e-mail et le mot de passe pour activer l'envoi.";
+      $("mailMsg").className = "form-msg ok";
+      loadMailConfig(); showToast("Configuration e-mail enregistrée");
+    }).catch(err => { $("mailMsg").textContent = err.message; $("mailMsg").className = "form-msg err"; });
+  });
+  $("mailTest").addEventListener("click", () => {
+    $("mailMsg").textContent = "Envoi du test…"; $("mailMsg").className = "form-msg";
+    fetch("/api/mailtest", { method: "POST" })
+      .then(r => r.json().then(j => ({ ok: r.ok, j }))).then(({ ok, j }) => {
+        if (ok && j.ok) { $("mailMsg").textContent = "✓ E-mail de test envoyé à " + j.to + ". Vérifiez votre boîte."; $("mailMsg").className = "form-msg ok"; }
+        else throw new Error((j && j.error) || "Échec");
+      }).catch(err => { $("mailMsg").textContent = "Échec : " + err.message + " — vérifiez l'e-mail et le mot de passe d'application."; $("mailMsg").className = "form-msg err"; });
+  });
+  $("pwSave").addEventListener("click", () => {
+    const a = $("pwNew").value, b = $("pwConfirm").value;
+    if (a.length < 4) { $("pwMsg").textContent = "Au moins 4 caractères."; $("pwMsg").className = "form-msg err"; return; }
+    if (a !== b) { $("pwMsg").textContent = "Les deux mots de passe ne correspondent pas."; $("pwMsg").className = "form-msg err"; return; }
+    fetch("/api/admin/password", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ new: a }),
+    }).then(r => r.json().then(j => ({ ok: r.ok, j }))).then(({ ok, j }) => {
+      if (!ok) throw new Error(j.error || "Erreur");
+      // La session en cours reste valide ; pas besoin de se reconnecter.
+      $("pwNew").value = ""; $("pwConfirm").value = "";
+      $("pwMsg").textContent = "✓ Mot de passe changé."; $("pwMsg").className = "form-msg ok";
+      showToast("Mot de passe administrateur mis à jour");
+    }).catch(err => { $("pwMsg").textContent = err.message; $("pwMsg").className = "form-msg err"; });
+  });
+
   // hook into dashboard load + settings fill
   const _origShowDashboard = showDashboard;
-  showDashboard = function () { _origShowDashboard(); loadGalleryAdmin(); };
+  showDashboard = function () { _origShowDashboard(); loadGalleryAdmin(); loadMailConfig(); };
   const _origFill = fillSettings;
   fillSettings = function (s) { _origFill(s); fillBioSlots(s.images); };
 })();

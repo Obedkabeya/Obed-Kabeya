@@ -29,6 +29,7 @@ Envoi d'e-mail (optionnel, pour recevoir les messages du formulaire) :
 """
 
 import base64
+import hashlib
 import json
 import os
 import re
@@ -50,6 +51,15 @@ SUBMISSIONS_FILE = os.path.join(DATA_DIR, "submissions.json")
 SETTINGS_FILE = os.path.join(DATA_DIR, "settings.json")
 MEDIA_FILE = os.path.join(DATA_DIR, "media.json")
 GALLERY_FILE = os.path.join(DATA_DIR, "gallery.json")
+CONTENT_FILE = os.path.join(DATA_DIR, "content.json")      # remplacements de texte (édition en ligne)
+IMGCONTENT_FILE = os.path.join(DATA_DIR, "imgcontent.json")  # remplacements d'images (édition en ligne)
+SLIDES_FILE = os.path.join(DATA_DIR, "slides.json")          # carrousels d'images par emplacement
+AUTH_FILE = os.path.join(DATA_DIR, "auth.json")            # mot de passe admin (haché)
+MAIL_FILE = os.path.join(DATA_DIR, "mail.json")            # configuration SMTP (privée)
+SESSIONS_FILE = os.path.join(DATA_DIR, "sessions.json")   # sessions d'authentification (rôle admin)
+
+SESSION_COOKIE = "kbo_session"
+SESSION_MAX_AGE = 30 * 24 * 3600  # 30 jours
 
 PORT = int(os.environ.get("PORT", "8000"))
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "kbo-admin")
@@ -159,6 +169,12 @@ def _ensure_data():
         _write_json(MEDIA_FILE, [])
     if not os.path.exists(GALLERY_FILE):
         _write_json(GALLERY_FILE, [])
+    if not os.path.exists(CONTENT_FILE):
+        _write_json(CONTENT_FILE, {})
+    if not os.path.exists(IMGCONTENT_FILE):
+        _write_json(IMGCONTENT_FILE, {})
+    if not os.path.exists(SLIDES_FILE):
+        _write_json(SLIDES_FILE, {})
 
 
 def _get_settings():
@@ -219,6 +235,43 @@ def _clean(value, limit=5000):
     return text[:limit]
 
 
+_ALLOWED_TAGS = {"strong", "b", "em", "i", "u", "br", "span", "a"}
+
+
+def _sanitize_html(value, limit=20000):
+    """Keep only a small allowlist of inline tags; drop scripts, styles and
+    event handlers. Content is authored by the authenticated admin only."""
+    if value is None:
+        return ""
+    text = str(value)[:limit]
+    # Remove whole script/style blocks.
+    text = re.sub(r"(?is)<(script|style)[^>]*>.*?</\1>", "", text)
+    # Strip on*="" event handlers and javascript: URLs.
+    text = re.sub(r'(?i)\son\w+\s*=\s*"[^"]*"', "", text)
+    text = re.sub(r"(?i)\son\w+\s*=\s*'[^']*'", "", text)
+    text = re.sub(r"(?i)javascript:", "", text)
+
+    def _keep(m):
+        raw = m.group(0)
+        tag = (m.group(1) or "").lower()
+        if tag not in _ALLOWED_TAGS:
+            return ""  # remove disallowed tag, keep inner text
+        if tag == "a":
+            href = re.search(r'href\s*=\s*"([^"]*)"', raw, re.I)
+            url = href.group(1) if href else "#"
+            if raw.lstrip().startswith("</"):
+                return "</a>"
+            return '<a href="%s" target="_blank" rel="noopener">' % url.replace('"', "%22")
+        if raw.lstrip().startswith("</"):
+            return "</%s>" % tag
+        if tag == "br":
+            return "<br>"
+        return "<%s>" % tag
+
+    text = re.sub(r"</?\s*([a-zA-Z0-9]+)[^>]*>", _keep, text)
+    return text.strip()
+
+
 def _drain(rfile, length):
     """Discard `length` bytes from the request body (keeps the socket clean)."""
     remaining = length
@@ -229,22 +282,96 @@ def _drain(rfile, length):
         remaining -= len(chunk)
 
 
+# ----------------------------- auth (mot de passe) -----------------------------
+def _hash_pw(pw, salt):
+    return hashlib.sha256((salt + ":" + pw).encode("utf-8")).hexdigest()
+
+
+def _check_password(pw):
+    """True if pw matches the stored admin password (or the default when none set)."""
+    if not pw:
+        return False
+    auth = _read_json(AUTH_FILE, None)
+    if isinstance(auth, dict) and auth.get("hash") and auth.get("salt"):
+        return _hash_pw(pw, auth["salt"]) == auth["hash"]
+    return pw == ADMIN_PASSWORD  # aucun mot de passe personnalisé → valeur par défaut/env
+
+
+def _set_password(pw):
+    salt = uuid.uuid4().hex
+    _write_json(AUTH_FILE, {"salt": salt, "hash": _hash_pw(pw, salt)})
+
+
+# ----------------------------- sessions (rôles) -----------------------------
+def _load_sessions():
+    s = _read_json(SESSIONS_FILE, {})
+    return s if isinstance(s, dict) else {}
+
+
+def _new_session(role="admin"):
+    sessions = _load_sessions()
+    # purge des sessions expirées
+    now = datetime.utcnow().timestamp()
+    sessions = {t: v for t, v in sessions.items()
+                if now - float(v.get("ts", 0)) < SESSION_MAX_AGE}
+    token = uuid.uuid4().hex + uuid.uuid4().hex
+    sessions[token] = {"role": role, "ts": now}
+    _write_json(SESSIONS_FILE, sessions)
+    return token
+
+
+def _session_role(token):
+    if not token:
+        return None
+    v = _load_sessions().get(token)
+    if not v:
+        return None
+    if datetime.utcnow().timestamp() - float(v.get("ts", 0)) >= SESSION_MAX_AGE:
+        return None
+    return v.get("role")
+
+
+def _destroy_session(token):
+    if not token:
+        return
+    sessions = _load_sessions()
+    if token in sessions:
+        del sessions[token]
+        _write_json(SESSIONS_FILE, sessions)
+
+
+# ----------------------------- e-mail (SMTP) -----------------------------
+def _get_mail():
+    """SMTP config from data/mail.json, falling back to environment variables."""
+    m = _read_json(MAIL_FILE, {})
+    if not isinstance(m, dict):
+        m = {}
+    return {
+        "host": m.get("host") or SMTP_HOST,
+        "port": int(m.get("port") or SMTP_PORT or 587),
+        "user": m.get("user") or SMTP_USER,
+        "pass": m.get("pass") or SMTP_PASS,
+        "from": m.get("from") or m.get("user") or SMTP_FROM or SMTP_USER,
+    }
+
+
 def _send_email(to_addr, subject, body, reply_to=None):
     """Send an e-mail via SMTP if configured. Returns (sent: bool, detail: str)."""
-    if not (SMTP_HOST and SMTP_USER and SMTP_PASS):
+    cfg = _get_mail()
+    if not (cfg["host"] and cfg["user"] and cfg["pass"]):
         return False, "SMTP non configuré"
     try:
         msg = EmailMessage()
         msg["Subject"] = subject
-        msg["From"] = SMTP_FROM or SMTP_USER
+        msg["From"] = cfg["from"] or cfg["user"]
         msg["To"] = to_addr
         if reply_to:
             msg["Reply-To"] = reply_to
         msg.set_content(body)
         context = ssl.create_default_context()
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as s:
+        with smtplib.SMTP(cfg["host"], cfg["port"], timeout=20) as s:
             s.starttls(context=context)
-            s.login(SMTP_USER, SMTP_PASS)
+            s.login(cfg["user"], cfg["pass"])
             s.send_message(msg)
         return True, "envoyé"
     except Exception as exc:  # noqa: BLE001 - report but never crash the request
@@ -278,12 +405,14 @@ class Handler(BaseHTTPRequestHandler):
     server_version = "KBO/1.0"
 
     # ---- utilities ----
-    def _send_json(self, obj, status=200):
+    def _send_json(self, obj, status=200, cookies=None):
         body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.send_header("Cache-Control", "no-store")
+        for c in (cookies or []):
+            self.send_header("Set-Cookie", c)
         self.end_headers()
         self.wfile.write(body)
 
@@ -300,8 +429,31 @@ class Handler(BaseHTTPRequestHandler):
         except (ValueError, UnicodeDecodeError):
             return {}
 
+    def _get_cookie(self, name):
+        raw = self.headers.get("Cookie", "")
+        for part in raw.split(";"):
+            if "=" in part:
+                k, v = part.strip().split("=", 1)
+                if k == name:
+                    return v
+        return None
+
+    def _role(self):
+        """Rôle de la requête : 'admin' si session valide (ou en-tête mot de passe
+        pour les outils/API), sinon 'visitor'."""
+        role = _session_role(self._get_cookie(SESSION_COOKIE))
+        if role == "admin":
+            return "admin"
+        if _check_password(self.headers.get("X-Admin-Password", "")):
+            return "admin"
+        return "visitor"
+
     def _is_admin(self):
-        return self.headers.get("X-Admin-Password", "") == ADMIN_PASSWORD
+        return self._role() == "admin"
+
+    def _set_cookie(self, name, value, max_age):
+        secure = "; Secure" if self.headers.get("X-Forwarded-Proto") == "https" else ""
+        return "%s=%s; Path=/; HttpOnly; SameSite=Lax; Max-Age=%d%s" % (name, value, max_age, secure)
 
     def log_message(self, fmt, *args):
         print("  %s - %s" % (self.address_string(), fmt % args))
@@ -334,6 +486,9 @@ class Handler(BaseHTTPRequestHandler):
 
     # ---- API: GET ----
     def _api_get(self, path):
+        if path == "/api/me":
+            return self._send_json({"role": self._role()})
+
         if path == "/api/articles":
             articles = _read_json(ARTICLES_FILE, [])
             articles = sorted(articles, key=lambda a: a.get("date", ""), reverse=True)
@@ -363,6 +518,23 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/gallery":
             return self._list_gallery()
 
+        if path == "/api/content":
+            return self._send_json(_read_json(CONTENT_FILE, {}))
+
+        if path == "/api/imgcontent":
+            return self._send_json(_read_json(IMGCONTENT_FILE, {}))
+
+        if path == "/api/slides":
+            return self._send_json(_read_json(SLIDES_FILE, {}))
+
+        if path == "/api/mailconfig":  # admin only, never exposes the password
+            if not self._is_admin():
+                return self._send_json({"error": "Non autorisé"}, 401)
+            cfg = _get_mail()
+            return self._send_json({"host": cfg["host"], "port": cfg["port"], "user": cfg["user"],
+                                    "from": cfg["from"], "hasPass": bool(cfg["pass"]),
+                                    "active": bool(cfg["host"] and cfg["user"] and cfg["pass"])})
+
         if path == "/api/submissions":  # admin-only inbox
             if not self._is_admin():
                 return self._send_json({"error": "Non autorisé"}, 401)
@@ -373,6 +545,12 @@ class Handler(BaseHTTPRequestHandler):
 
     # ---- API: POST ----
     def _api_post(self, path):
+        if path == "/api/login":
+            return self._login()
+
+        if path == "/api/logout":
+            return self._logout()
+
         if path == "/api/articles":
             return self._create_article()
 
@@ -381,6 +559,27 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "/api/settings/image":
             return self._save_one_image()
+
+        if path == "/api/settings/text":
+            return self._save_one_text()
+
+        if path == "/api/content":
+            return self._save_content()
+
+        if path == "/api/imgcontent":
+            return self._save_imgcontent()
+
+        if path == "/api/slides":
+            return self._save_slides()
+
+        if path == "/api/admin/password":
+            return self._change_password()
+
+        if path == "/api/mailconfig":
+            return self._save_mailconfig()
+
+        if path == "/api/mailtest":
+            return self._send_test_email()
 
         if path == "/api/upload":
             return self._upload_image()
@@ -451,13 +650,152 @@ class Handler(BaseHTTPRequestHandler):
         data = self._read_body()
         key = _clean(data.get("key"), 40)
         path = _clean(data.get("path"), 400)
-        if key not in DEFAULT_SETTINGS["images"] or not path:
+        valid = key in DEFAULT_SETTINGS["images"] or key == "photo"
+        if not valid or not path:
             return self._send_json({"error": "Requête invalide"}, 400)
         settings = _get_settings()
-        settings["images"][key] = path
+        if key == "photo":
+            settings["photo"] = path       # photo de profil (accueil)
+        else:
+            settings["images"][key] = path
         settings.pop("_emailConfigured", None)
         _write_json(SETTINGS_FILE, settings)
         return self._send_json({"ok": True, "images": settings["images"]})
+
+    def _save_one_text(self):
+        """Met à jour un des textes « réglages » (nom, rôle, logo, présentation…)
+        depuis l'édition en ligne. La clé doit exister dans DEFAULT_TEXTS."""
+        if not self._is_admin():
+            return self._send_json({"error": "Non autorisé"}, 401)
+        data = self._read_body()
+        key = _clean(data.get("key"), 60)
+        if key not in DEFAULT_TEXTS:
+            return self._send_json({"error": "Clé inconnue"}, 400)
+        value = _sanitize_html(data.get("value"), 4000)
+        settings = _get_settings()
+        settings["texts"][key] = value
+        if key == "presentation":
+            settings["presentation"] = value
+        settings.pop("_emailConfigured", None)
+        _write_json(SETTINGS_FILE, settings)
+        return self._send_json({"ok": True})
+
+    def _save_content(self):
+        """Enregistre le remplacement d'un texte libre du site (biographie,
+        pages services…), identifié par sa clé d'emplacement."""
+        if not self._is_admin():
+            return self._send_json({"error": "Non autorisé"}, 401)
+        data = self._read_body()
+        key = _clean(data.get("key"), 300)
+        if not key:
+            return self._send_json({"error": "Clé manquante"}, 400)
+        content = _read_json(CONTENT_FILE, {})
+        if not isinstance(content, dict):
+            content = {}
+        value = _sanitize_html(data.get("value"), 20000)
+        if value == "":
+            content.pop(key, None)          # texte vidé → on revient au défaut
+        else:
+            content[key] = value
+        _write_json(CONTENT_FILE, content)
+        return self._send_json({"ok": True})
+
+    def _save_imgcontent(self):
+        """Remplace une image du site (par emplacement) par une image téléversée."""
+        if not self._is_admin():
+            return self._send_json({"error": "Non autorisé"}, 401)
+        data = self._read_body()
+        key = _clean(data.get("key"), 300)
+        path = _clean(data.get("path"), 500)
+        if not key:
+            return self._send_json({"error": "Clé manquante"}, 400)
+        imgs = _read_json(IMGCONTENT_FILE, {})
+        if not isinstance(imgs, dict):
+            imgs = {}
+        if not path:
+            imgs.pop(key, None)             # revient à l'image d'origine
+        else:
+            imgs[key] = path
+        _write_json(IMGCONTENT_FILE, imgs)
+        return self._send_json({"ok": True})
+
+    def _save_slides(self):
+        """Enregistre le carrousel d'images d'un emplacement (liste ordonnée)."""
+        if not self._is_admin():
+            return self._send_json({"error": "Non autorisé"}, 401)
+        data = self._read_body()
+        key = _clean(data.get("key"), 300)
+        if not key:
+            return self._send_json({"error": "Clé manquante"}, 400)
+        paths = data.get("paths")
+        clean = []
+        if isinstance(paths, list):
+            for p in paths[:30]:
+                cp = _clean(p, 500)
+                if cp:
+                    clean.append(cp)
+        slides = _read_json(SLIDES_FILE, {})
+        if not isinstance(slides, dict):
+            slides = {}
+        if clean:
+            slides[key] = clean
+        else:
+            slides.pop(key, None)           # vide → revient à l'image par défaut
+        _write_json(SLIDES_FILE, slides)
+        return self._send_json({"ok": True, "paths": clean})
+
+    def _login(self):
+        """Authentifie le propriétaire et ouvre une session (cookie HttpOnly)."""
+        data = self._read_body()
+        if not _check_password(str(data.get("password") or "")):
+            return self._send_json({"error": "Mot de passe incorrect."}, 401)
+        token = _new_session("admin")
+        cookie = self._set_cookie(SESSION_COOKIE, token, SESSION_MAX_AGE)
+        return self._send_json({"ok": True, "role": "admin"}, cookies=[cookie])
+
+    def _logout(self):
+        _destroy_session(self._get_cookie(SESSION_COOKIE))
+        cleared = self._set_cookie(SESSION_COOKIE, "", 0)
+        return self._send_json({"ok": True}, cookies=[cleared])
+
+    def _change_password(self):
+        if not self._is_admin():
+            return self._send_json({"error": "Non autorisé"}, 401)
+        data = self._read_body()
+        new = str(data.get("new") or "").strip()
+        if len(new) < 4:
+            return self._send_json({"error": "Le nouveau mot de passe doit faire au moins 4 caractères."}, 400)
+        _set_password(new)
+        return self._send_json({"ok": True})
+
+    def _save_mailconfig(self):
+        if not self._is_admin():
+            return self._send_json({"error": "Non autorisé"}, 401)
+        data = self._read_body()
+        current = _read_json(MAIL_FILE, {})
+        if not isinstance(current, dict):
+            current = {}
+        cfg = {
+            "host": _clean(data.get("host"), 120) or "smtp.gmail.com",
+            "port": int(str(data.get("port") or "587").strip() or 587),
+            "user": _clean(data.get("user"), 200),
+            "from": _clean(data.get("from"), 200) or _clean(data.get("user"), 200),
+            # keep the existing password if the field is left blank
+            "pass": (str(data.get("pass")).strip() if data.get("pass") else current.get("pass", "")),
+        }
+        _write_json(MAIL_FILE, cfg)
+        return self._send_json({"ok": True, "active": bool(cfg["host"] and cfg["user"] and cfg["pass"])})
+
+    def _send_test_email(self):
+        if not self._is_admin():
+            return self._send_json({"error": "Non autorisé"}, 401)
+        recipient = _get_settings()["email"]
+        sent, detail = _send_email(recipient, "Test — KBO Corporate Finance",
+                                   "Ceci est un e-mail de test envoyé depuis votre tableau de bord.\n"
+                                   "Si vous le recevez, la configuration e-mail fonctionne. ✓")
+        if sent:
+            return self._send_json({"ok": True, "to": recipient})
+        return self._send_json({"ok": False, "error": detail}, 400)
 
     def _upload_image(self):
         if not self._is_admin():
@@ -719,6 +1057,14 @@ class Handler(BaseHTTPRequestHandler):
             self.send_error(404, "Fichier introuvable")
             return
 
+        base = os.path.basename(full)
+        is_admin = self._is_admin()
+
+        # Le code d'édition n'est JAMAIS livré aux visiteurs (protection serveur).
+        if base == "editor.js" and not is_admin:
+            self.send_error(403, "Réservé à l'administrateur")
+            return
+
         ext = os.path.splitext(full)[1].lower()
         ctype = CONTENT_TYPES.get(ext, "application/octet-stream")
 
@@ -734,19 +1080,42 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         # Rich link previews: inject Open Graph tags when an article is shared.
-        if os.path.basename(full) == "article.html":
+        if base == "article.html":
             body = self._inject_article_og(body)
+
+        # Injection du rôle + de l'éditeur, uniquement pour l'administrateur connecté.
+        if ext == ".html":
+            body = self._inject_role(body, is_admin, base)
 
         self.send_response(200)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
-        if ext in (".png", ".jpg", ".jpeg", ".gif", ".webp", ".woff", ".woff2", ".ico"):
+        if ext == ".html":
+            # Le HTML dépend du rôle (admin/visiteur) : ne jamais mettre en cache.
+            self.send_header("Cache-Control", "no-store")
+        elif ext in (".png", ".jpg", ".jpeg", ".gif", ".webp", ".woff", ".woff2", ".ico"):
             self.send_header("Cache-Control", "public, max-age=3600")
         else:
-            # HTML / JS / CSS / SVG must always revalidate so edits appear at once.
+            # JS / CSS / SVG : revalidation à chaque fois.
             self.send_header("Cache-Control", "no-cache")
         self.end_headers()
         self.wfile.write(body)
+
+    def _inject_role(self, body, is_admin, base):
+        """Tell the page its role, and load the editor ONLY for a logged-in admin.
+        Visitors never receive any admin/editor code."""
+        try:
+            text = body.decode("utf-8")
+        except UnicodeDecodeError:
+            return body
+        # Le drapeau de rôle doit être défini AVANT l'exécution des scripts du body
+        # (components.js le lit) → on l'injecte dans le <head>.
+        flag = "<script>window.__KBO_ADMIN__=%s;</script>" % ("true" if is_admin else "false")
+        text = text.replace("</head>", flag + "</head>", 1)
+        # L'éditeur en ligne (pages publiques, admin connecté) se charge en fin de body.
+        if is_admin and base != "admin.html":
+            text = text.replace("</body>", '<script src="js/editor.js"></script></body>', 1)
+        return text.encode("utf-8")
 
     def _inject_article_og(self, body):
         """Insert Open Graph / Twitter meta for the requested article so shared
@@ -859,8 +1228,12 @@ def main():
     print("  KBO Corporate Finance")
     print("  Site       : http://localhost:%d" % PORT)
     print("  Admin      : http://localhost:%d/admin.html  (tableau de bord complet)" % PORT)
-    print("  Mot de passe admin : %s" % ("(défini via ADMIN_PASSWORD)" if os.environ.get("ADMIN_PASSWORD") else "kbo-admin"))
-    print("  E-mail (formulaire): %s" % ("configuré → %s" % SMTP_HOST if (SMTP_HOST and SMTP_USER and SMTP_PASS) else "non configuré (messages enregistrés + affichés ici)"))
+    _pw_custom = os.path.exists(AUTH_FILE)
+    print("  Mot de passe admin : %s" % ("(personnalisé dans le tableau de bord)" if _pw_custom
+          else (os.environ.get("ADMIN_PASSWORD") or "kbo-admin")))
+    _mail = _get_mail()
+    print("  E-mail (formulaire): %s" % ("configuré → %s" % _mail["host"] if (_mail["host"] and _mail["user"] and _mail["pass"])
+          else "non configuré (à régler dans le tableau de bord → Notifications e-mail)"))
     print("  Ctrl+C pour arrêter")
     print("―" * 60)
     try:

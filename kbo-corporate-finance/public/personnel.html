@@ -71,11 +71,16 @@
           <hr class="divider" />
           <p class="muted" style="max-width:560px;">Un espace où je publie régulièrement mes récits de marché, mes lectures et mes réflexions stratégiques.</p>
         </div>
-        <a class="btn btn--ghost admin-only" href="admin.html">Espace publication <span class="arrow">→</span></a>
       </div>
 
-      <div id="blogGrid" class="blog-grid" aria-live="polite">
-        <p class="empty-state">Chargement des articles…</p>
+      <div class="carousel blog-carousel" id="blogCarousel">
+        <div id="blogGrid" class="carousel__track blog-track" aria-live="polite">
+          <p class="empty-state">Chargement des articles…</p>
+        </div>
+        <div class="carousel__nav">
+          <button class="carousel__btn" id="blogPrev" type="button" aria-label="Articles précédents">←</button>
+          <button class="carousel__btn" id="blogNext" type="button" aria-label="Articles suivants">→</button>
+        </div>
       </div>
     </div>
   </section>

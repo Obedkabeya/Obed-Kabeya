@@ -6,11 +6,11 @@
   const page = document.body.getAttribute("data-page") || "";
   const year = new Date().getFullYear();
 
+  // Menu réduit : Personnel et Professionnel restent accessibles depuis les
+  // boutons de la page d'accueil, mais sont retirés du menu de navigation.
   const links = [
     { href: "index.html", label: "Accueil", key: "accueil" },
-    { href: "personnel.html", label: "Personnel", key: "personnel" },
     { href: "galerie.html", label: "Galerie", key: "galerie" },
-    { href: "professionnel.html", label: "Professionnel", key: "professionnel" },
     { href: "contact.html", label: "Contact", key: "contact" },
   ];
 
@@ -30,7 +30,6 @@
           </button>
           <ul class="nav__links" id="navLinks">
             ${links.map(l => `<li><a href="${l.href}" class="${page === l.key ? "is-active" : ""}">${l.label}</a></li>`).join("")}
-            <li class="nav__admin-item"><a href="admin.html">⚙ Espace admin</a></li>
           </ul>
         </nav>
       </div>
@@ -68,30 +67,12 @@
               <a href="#" data-email-link aria-label="Email">${ic.mail}</a>
             </div>
           </div>
-          <div>
-            <h5>Navigation</h5>
-            <ul>
-              <li><a href="index.html">Accueil</a></li>
-              <li><a href="personnel.html">Biographie & Blog</a></li>
-              <li><a href="galerie.html">Galerie</a></li>
-              <li><a href="professionnel.html">Services</a></li>
-              <li><a href="contact.html">Contact</a></li>
-            </ul>
-          </div>
-          <div>
-            <h5>Services</h5>
-            <ul>
-              <li><a href="formation.html">Formation en finance des marchés</a></li>
-              <li><a href="comptabilite.html">Comptabilité des jeunes entreprises</a></li>
-              <li><a href="conseil.html">Conseil en investissement</a></li>
-            </ul>
-          </div>
         </div>
         <div class="footer__bottom">
-          <span>© ${year} <span data-text="brandMark">KBO</span> Corporate Finance — <span data-text="name">Obed Kabeya</span>. Tous droits réservés.</span>
+          <span class="footer__copy">© ${year} <span data-text="brandMark">KBO</span> Corporate Finance — <span data-text="name">Obed Kabeya</span>. Tous droits réservés.</span>
           <span class="footer__admin">
             <a href="#" data-email-link data-email-text>e-mail</a>
-            <a href="admin.html" class="footer__gear" aria-label="Espace administration" title="Espace admin — gérer le site">${ic.gear}<span>Paramètres</span></a>
+            <!-- Accès admin volontairement invisible : tapez 5x sur le logo, ou allez sur /admin.html -->
           </span>
         </div>
       </div>
@@ -101,6 +82,36 @@
   const f = document.getElementById("site-footer");
   if (h) h.outerHTML = header;
   if (f) f.outerHTML = footer;
+
+  // App-style bottom tab bar (shown only on phones via CSS)
+  const tabIcon = {
+    accueil: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/></svg>',
+    personnel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>',
+    galerie: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m5 18 5-5 4 4 2-2 3 3"/></svg>',
+    professionnel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+    contact: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>',
+  };
+  const tabLabel = { accueil: "Accueil", personnel: "Perso", galerie: "Galerie", professionnel: "Services", contact: "Contact" };
+  const tabbar = `<nav class="mobile-tabbar" aria-label="Navigation">
+    ${links.map(l => `<a href="${l.href}" class="${page === l.key ? "is-active" : ""}">${tabIcon[l.key]}<span>${tabLabel[l.key]}</span></a>`).join("")}
+  </nav>`;
+  document.body.insertAdjacentHTML("beforeend", tabbar);
+
+  // Secret owner access: tap the footer copyright 5 times quickly → login page.
+  // No visible admin link for visitors; only you know the gesture.
+  (function () {
+    const secret = document.querySelector(".footer__copy");
+    if (!secret) return;
+    secret.style.cursor = "default";
+    let taps = 0, timer = null;
+    const hit = () => {
+      taps++;
+      if (taps >= 5) { taps = 0; location.href = "admin.html"; return; }
+      clearTimeout(timer);
+      timer = setTimeout(() => { taps = 0; }, 1600);
+    };
+    secret.addEventListener("click", hit);
+  })();
 
   // Burger toggle
   const nav = document.getElementById("nav");
@@ -167,14 +178,161 @@
     document.dispatchEvent(new CustomEvent("kbo:settings", { detail: s }));
   }
 
+  // ---- Editable free text (biography, service pages, all headings…) ----
+  const EDIT_SELECTOR = "h1,h2,h3,h4,h5,p,li,.eyebrow,.lead,figcaption,blockquote";
+  const pageKey = page || "page";
+
+  function domPath(el) {
+    const parts = [];
+    while (el && el !== document.body && el.nodeType === 1) {
+      const parent = el.parentNode; if (!parent) break;
+      parts.unshift(el.tagName + Array.prototype.indexOf.call(parent.children, el));
+      el = parent;
+    }
+    return parts.join("/");
+  }
+
+  // Text elements that may be edited. Elements with data-text are saved to the
+  // site settings; everything else to the content store (keyed by position).
+  function editableElements() {
+    const set = new Set();
+    document.querySelectorAll(EDIT_SELECTOR + ",[data-text]").forEach(el => {
+      if (el.hasAttribute("data-noedit")) return;
+      if (el.querySelector(EDIT_SELECTOR + ",[data-text]")) return;  // only leaf text blocks
+      const inChrome = el.closest(".site-header, .site-footer, form, .admin-bar, .preview-bar");
+      if (inChrome && !el.hasAttribute("data-text")) return;         // skip nav/footer chrome
+      if (!el.textContent.trim()) return;
+      set.add(el);
+    });
+    return [...set];
+  }
+  function editableKey(el) {
+    if (el.hasAttribute("data-text")) return { kind: "setting", key: el.getAttribute("data-text") };
+    return { kind: "content", key: pageKey + "|" + domPath(el) };
+  }
+
+  function applyContent(map) {
+    if (!map) return;
+    editableElements().forEach(el => {
+      if (el.hasAttribute("data-text")) return;                 // handled by settings
+      const k = pageKey + "|" + domPath(el);
+      if (Object.prototype.hasOwnProperty.call(map, k)) el.innerHTML = map[k];
+    });
+    document.dispatchEvent(new CustomEvent("kbo:content"));
+  }
+
+  // ---- Editable images (every illustration/photo on the site) ----
+  function editableImages() {
+    const out = [];
+    document.querySelectorAll("section img").forEach(img => {
+      if (img.hasAttribute("data-noedit")) return;
+      if (img.closest(".site-header, .site-footer, .admin-bar, #blogGrid, #galleryGrid")) return;
+      if (img.closest("[data-slot]")) return;                    // géré par le système de slots
+      out.push(img);
+    });
+    return out;
+  }
+  function imageKey(img) {
+    if (img.id === "heroPhoto") return { kind: "setting-image", key: "photo" };
+    const holder = img.closest("[data-img]");
+    if (holder) return { kind: "setting-image", key: holder.getAttribute("data-img") };
+    return { kind: "img", key: pageKey + "|" + domPath(img) };
+  }
+  function applyImageContent(map) {
+    if (!map) return;
+    editableImages().forEach(img => {
+      const info = imageKey(img);
+      if (info.kind !== "img") return;                          // photo/bio via settings
+      if (Object.prototype.hasOwnProperty.call(map, info.key)) img.src = map[info.key];
+    });
+  }
+
+  // ---- Image slots (carrousels d'images par emplacement) ----
+  function defaultSlotImage(slot) {
+    return slot.getAttribute("data-default") || "";
+  }
+  function renderSlot(slot, arr) {
+    slot.__images = Array.isArray(arr) ? arr.slice() : null;
+    const list = (slot.__images && slot.__images.length) ? slot.__images : null;
+    if (!list) {
+      // aucun override : garder / restaurer l'image par défaut
+      const def = defaultSlotImage(slot);
+      if (def) slot.innerHTML = '<img src="' + def + '" alt="">';
+      return;
+    }
+    if (list.length === 1) {
+      slot.innerHTML = '<img src="' + list[0] + '" alt="">';
+      return;
+    }
+    const imgs = list.map(p => '<img src="' + p + '" alt="" loading="lazy">').join("");
+    const dots = list.map((_, i) => '<button type="button" class="slot-dot' + (i === 0 ? " is-on" : "") + '" data-i="' + i + '" aria-label="Image ' + (i + 1) + '"></button>').join("");
+    slot.innerHTML = '<div class="slot-carousel"><div class="slot-track">' + imgs + '</div><div class="slot-dots">' + dots + '</div></div>';
+    wireSlotCarousel(slot);
+  }
+  function wireSlotCarousel(slot) {
+    const track = slot.querySelector(".slot-track");
+    const dots = [...slot.querySelectorAll(".slot-dot")];
+    if (!track) return;
+    const setActive = () => {
+      const i = Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+      dots.forEach((d, k) => d.classList.toggle("is-on", k === i));
+      slot.__index = i;
+    };
+    track.addEventListener("scroll", () => { window.requestAnimationFrame(setActive); }, { passive: true });
+    dots.forEach(d => d.addEventListener("click", () => {
+      track.scrollTo({ left: track.clientWidth * parseInt(d.dataset.i, 10), behavior: "smooth" });
+    }));
+    // Défilement automatique (pause quand l'onglet n'est pas visible ou en édition)
+    clearInterval(slot.__timer);
+    slot.__timer = setInterval(() => {
+      if (document.body.classList.contains("editing") || document.hidden) return;
+      const n = dots.length; if (n < 2) return;
+      const next = ((slot.__index || 0) + 1) % n;
+      track.scrollTo({ left: track.clientWidth * next, behavior: "smooth" });
+    }, 5000);
+  }
+  function applySlides(map) {
+    document.querySelectorAll("[data-slot]").forEach(slot => {
+      // mémorise l'image par défaut d'origine (avant tout remplacement)
+      if (!slot.hasAttribute("data-default")) {
+        const img = slot.querySelector("img");
+        slot.setAttribute("data-default", img ? img.getAttribute("src") : "");
+      }
+      const key = slot.getAttribute("data-slot");
+      renderSlot(slot, map ? map[key] : null);
+    });
+  }
+
   window.KBO = window.KBO || {};
   window.KBO.applySettings = applySettings;
   window.KBO.getSettings = () => currentSettings;
+  window.KBO.editableElements = editableElements;
+  window.KBO.editableKey = editableKey;
+  window.KBO.editableImages = editableImages;
+  window.KBO.imageKey = imageKey;
+  window.KBO.renderSlot = renderSlot;
 
   fetch("/api/settings")
     .then(r => (r.ok ? r.json() : null))
     .then(applySettings)
     .catch(() => { /* offline: keep static defaults already in the markup */ });
+
+  fetch("/api/content")
+    .then(r => (r.ok ? r.json() : null))
+    .then(applyContent)
+    .catch(() => {});
+
+  fetch("/api/imgcontent")
+    .then(r => (r.ok ? r.json() : null))
+    .then(applyImageContent)
+    .catch(() => {});
+
+  if (document.querySelector("[data-slot]")) {
+    fetch("/api/slides")
+      .then(r => (r.ok ? r.json() : null))
+      .then(map => { applySlides(map); document.dispatchEvent(new CustomEvent("kbo:slides")); })
+      .catch(() => applySlides(null));
+  }
 
   // ---- Preview-as-visitor: force the pure visitor view even when logged in ----
   const previewVisitor = new URLSearchParams(location.search).get("visitor") === "1";
@@ -199,17 +357,10 @@
     return; // do NOT enable admin mode in preview
   }
 
-  // ---- Admin mode: reveal admin-only UI only for a logged-in admin ----
-  const token = localStorage.getItem("kbo_admin_pw");
-  if (token) {
-    fetch("/api/admin/verify", { headers: { "X-Admin-Password": token } })
-      .then(r => {
-        if (r.ok) {
-          document.body.classList.add("is-admin");
-          window.KBO.adminPassword = token;
-          document.dispatchEvent(new CustomEvent("kbo:admin"));
-        }
-      })
-      .catch(() => {});
+  // ---- Admin mode: driven by the SERVER (window.__KBO_ADMIN__ injected only
+  //      into pages served to an authenticated admin). Visitors never get it. ----
+  if (window.__KBO_ADMIN__ === true) {
+    document.body.classList.add("is-admin");
+    document.dispatchEvent(new CustomEvent("kbo:admin"));
   }
 })();

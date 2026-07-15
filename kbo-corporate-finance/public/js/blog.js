@@ -4,6 +4,26 @@
   const grid = document.getElementById("blogGrid");
   if (!grid) return;
 
+  // Horizontal carousel navigation (left/right arrows scroll the track only)
+  const prevBtn = document.getElementById("blogPrev");
+  const nextBtn = document.getElementById("blogNext");
+  if (prevBtn && nextBtn) {
+    const step = () => Math.min(grid.clientWidth * 0.85, 360);
+    prevBtn.addEventListener("click", () => grid.scrollBy({ left: -step(), behavior: "smooth" }));
+    nextBtn.addEventListener("click", () => grid.scrollBy({ left: step(), behavior: "smooth" }));
+    const sync = () => {
+      const max = grid.scrollWidth - grid.clientWidth - 2;
+      prevBtn.disabled = grid.scrollLeft <= 2;
+      nextBtn.disabled = grid.scrollLeft >= max;
+      const hide = grid.scrollWidth <= grid.clientWidth + 4;
+      const nav = grid.parentElement.querySelector(".carousel__nav");
+      if (nav) nav.style.display = hide ? "none" : "";
+    };
+    grid.addEventListener("scroll", sync, { passive: true });
+    grid.addEventListener("kbo:rendered", sync);
+    window.addEventListener("resize", sync);
+  }
+
   const esc = (s) => String(s == null ? "" : s)
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
@@ -59,6 +79,7 @@
         return;
       }
       grid.innerHTML = list.map(cardFor).join("");
+      grid.dispatchEvent(new CustomEvent("kbo:rendered"));
     })
     .catch(() => {
       grid.innerHTML = `<p class="empty-state">Le blog se charge lorsque le serveur est démarré (<code>python3 server.py</code>). Aucun article à afficher pour l'instant.</p>`;

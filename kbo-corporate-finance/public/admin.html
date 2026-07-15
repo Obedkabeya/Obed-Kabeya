@@ -56,6 +56,7 @@
           <button class="admin-tab" data-tab="blog">Blog &amp; Histoires</button>
           <button class="admin-tab" data-tab="galerie">Galerie</button>
           <button class="admin-tab" data-tab="medias">Médias</button>
+          <button class="admin-tab" data-tab="compte">Compte &amp; e-mail</button>
           <button class="admin-tab admin-tab--logout" id="logoutBtn" type="button">Déconnexion</button>
         </nav>
 
@@ -271,6 +272,39 @@
             <span class="form-msg" id="mediaMsg" style="margin-left:1rem"></span>
           </div>
           <div id="mediaGrid" class="media-grid"><p class="muted">Chargement…</p></div>
+        </div>
+
+        <!-- ===== COMPTE & E-MAIL ===== -->
+        <div class="tabpanel" data-panel="compte">
+          <div class="form-wrap" style="margin-bottom:2rem">
+            <h3>Recevoir les messages par e-mail</h3>
+            <p class="muted" style="font-size:.92rem">Pour que les messages du formulaire de contact arrivent <strong>directement dans votre boîte mail</strong>, renseignez ici votre messagerie. Avec Gmail, créez un « mot de passe d'application » (Compte Google → Sécurité → Validation en 2 étapes → Mots de passe des applications) et collez‑le ci‑dessous.</p>
+            <div class="form-grid">
+              <div class="field"><label for="mailHost">Serveur SMTP</label><input type="text" id="mailHost" value="smtp.gmail.com" /></div>
+              <div class="field"><label for="mailPort">Port</label><input type="text" id="mailPort" inputmode="numeric" value="587" /></div>
+              <div class="field field--full"><label for="mailUser">Votre adresse e-mail (expéditeur)</label><input type="email" id="mailUser" placeholder="Obedkabeya1996@gmail.com" /></div>
+              <div class="field field--full"><label for="mailPass">Mot de passe d'application</label><input type="password" id="mailPass" placeholder="•••• •••• •••• ••••" autocomplete="new-password" /><span class="hint" id="mailPassHint"></span></div>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn--primary" id="mailSave" type="button">Enregistrer</button>
+              <button class="btn btn--ghost" id="mailTest" type="button">Envoyer un e-mail de test</button>
+              <span class="form-msg" id="mailMsg"></span>
+            </div>
+            <p class="hint">Les messages arriveront à l'adresse définie dans <strong>Réseaux &amp; Contact → Adresse e-mail de réception</strong>. Sans cette configuration, les messages restent enregistrés mais ne sont pas envoyés.</p>
+          </div>
+
+          <div class="form-wrap">
+            <h3>Mot de passe administrateur</h3>
+            <p class="muted" style="font-size:.92rem">Changez le mot de passe qui protège cet espace. Vous seul y avez accès — les visiteurs ne voient aucun bouton d'administration.</p>
+            <div class="form-grid">
+              <div class="field"><label for="pwNew">Nouveau mot de passe</label><input type="password" id="pwNew" autocomplete="new-password" /></div>
+              <div class="field"><label for="pwConfirm">Confirmer</label><input type="password" id="pwConfirm" autocomplete="new-password" /></div>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn--primary" id="pwSave" type="button">Changer le mot de passe</button>
+              <span class="form-msg" id="pwMsg"></span>
+            </div>
+          </div>
         </div>
 
       </div>

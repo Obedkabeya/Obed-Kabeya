@@ -35,6 +35,7 @@ kbo-corporate-finance/
 │   ├── settings.json    # réglages + textes éditables + images (bio) du site
 │   ├── media.json       # index de la bibliothèque de médias
 │   ├── gallery.json     # album photos / vidéos (galerie)
+│   ├── content.json     # textes modifiés en ligne (biographie, pages services…)
 │   └── submissions.json # candidatures & messages de contact reçus
 └── public/
     ├── index.html            # Accueil — hero + 2 chemins
@@ -80,10 +81,28 @@ kbo-corporate-finance/
   - **Photos de la biographie** : gérées **uniquement** dans l'onglet Identité
     (3 emplacements). La page Personnel n'affiche aucun bouton d'édition.
 
-  **Vue admin vs visiteur** : les visiteurs ne voient aucun bouton d'édition ni lien de
-  réglages. L'icône ⚙ Paramètres et les boutons « Changer la photo » n'apparaissent
-  qu'après connexion (le navigateur mémorise la session). Pour ouvrir l'admin, allez sur
-  `/admin.html` (à mettre en favori).
+  **Modifier TOUT le texte (comme sur Facebook)** : connectez-vous, puis une barre
+  **« Mode administrateur »** apparaît en bas de chaque page. Cliquez **« Modifier le
+  texte »** : chaque texte du site (logo, biographie, titres, pages services…) devient
+  modifiable directement sur la page — cliquez, tapez, ça s'enregistre tout seul. Vos
+  modifications sont stockées dans `data/content.json` (textes libres) et
+  `data/settings.json` (logo, nom, rôle…).
+
+  **Authentification par session + contrôle d'accès par rôle (côté serveur)** :
+  la connexion (`POST /api/login`) ouvre une **session via un cookie HttpOnly** ; le
+  serveur déduit le rôle (`admin` / `visitor`) de ce cookie. La séparation n'est **pas**
+  cosmétique :
+  - Le code d'édition (`js/editor.js`) et le drapeau d'administration ne sont **livrés
+    qu'à un admin authentifié** — un visiteur reçoit `403` s'il tente `/js/editor.js`,
+    et la page ne contient aucun script d'administration.
+  - **Toutes** les routes d'écriture et les lectures sensibles vérifient la session
+    (`401` sinon) — un visiteur ne peut rien modifier même en connaissant l'URL.
+  - **Accès** : `/admin.html` (page de connexion), ou 5 tapes rapides sur le
+    copyright en bas de page. Déconnexion via `POST /api/logout`.
+
+  Fichiers d'auth : `data/auth.json` (mot de passe haché), `data/sessions.json`
+  (sessions actives). Mot de passe par défaut `kbo-admin`, modifiable dans
+  **Compte & e-mail** (ou via `ADMIN_PASSWORD`).
 
   **Articles partageables** : chaque article a des boutons de partage (WhatsApp, X,
   Facebook, LinkedIn, e-mail, copier le lien) et le serveur ajoute des balises Open
