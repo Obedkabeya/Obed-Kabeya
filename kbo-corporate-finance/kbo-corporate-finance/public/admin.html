@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Espace admin · KBO Corporate Finance</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="images/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/admin.css" />
+</head>
+<body data-page="">
+  <div id="site-header"></div>
+
+  <section class="page-intro">
+    <div class="container">
+      <p class="eyebrow reveal">Espace privé</p>
+      <h1 class="reveal">Tableau de bord</h1>
+      <p class="lead reveal">Gérez tout votre site depuis un seul endroit. Les modifications enregistrées se mettent à jour automatiquement sur l'Accueil, Personnel, Professionnel et Contact.</p>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top:2rem">
+    <div class="container">
+
+      <!-- LOGIN -->
+      <div id="loginPane" class="form-wrap reveal" style="max-width:440px;margin:0 auto;">
+        <h3>Connexion sécurisée</h3>
+        <p class="muted" style="font-size:.92rem">Saisissez le mot de passe d'administration.</p>
+        <form id="loginForm" class="stack">
+          <div class="field">
+            <label for="pw">Mot de passe <span class="req">*</span></label>
+            <input type="password" id="pw" autocomplete="current-password" required />
+          </div>
+          <div class="form-actions">
+            <button class="btn btn--primary" type="submit">Se connecter</button>
+            <span class="form-msg" id="loginMsg"></span>
+          </div>
+          <p class="form-note">Mot de passe par défaut : <code>kbo-admin</code> — modifiable via <code>ADMIN_PASSWORD</code>.</p>
+        </form>
+      </div>
+
+      <!-- DASHBOARD -->
+      <div id="dashboard" hidden>
+        <div class="dash-toolbar">
+          <a class="btn btn--ghost" href="index.html?visitor=1" target="_blank" rel="noopener">👁 Voir en tant que visiteur</a>
+          <span class="muted" style="font-size:.85rem">Ouvre le site tel que le voient vos visiteurs, sans aucun bouton d'édition.</span>
+        </div>
+        <nav class="admin-tabs" id="adminTabs" aria-label="Sections d'administration">
+          <button class="admin-tab is-active" data-tab="identite">Identité &amp; Accueil</button>
+          <button class="admin-tab" data-tab="textes">Textes des pages</button>
+          <button class="admin-tab" data-tab="reseaux">Réseaux &amp; Contact</button>
+          <button class="admin-tab" data-tab="blog">Blog &amp; Histoires</button>
+          <button class="admin-tab" data-tab="galerie">Galerie</button>
+          <button class="admin-tab" data-tab="medias">Médias</button>
+          <button class="admin-tab" data-tab="compte">Compte &amp; e-mail</button>
+          <button class="admin-tab admin-tab--logout" id="logoutBtn" type="button">Déconnexion</button>
+        </nav>
+
+        <!-- ===== SETTINGS FORM (identité + textes + réseaux) ===== -->
+        <form id="settingsForm">
+          <!-- Identité & Accueil -->
+          <div class="tabpanel is-active" data-panel="identite">
+            <div class="form-wrap">
+              <h3>Photo de profil</h3>
+              <p class="muted" style="font-size:.92rem">Affichée sur la page d'accueil. JPG, PNG ou WEBP.</p>
+              <div class="photo-editor">
+                <div class="photo-preview"><img id="photoPreview" src="images/portrait.svg" alt="Aperçu de la photo" /></div>
+                <div class="stack">
+                  <span class="btn btn--ghost file-btn">Choisir une image<input type="file" id="photoFile" accept="image/*" /></span>
+                  <span class="hint" id="photoName">Aucune nouvelle image sélectionnée.</span>
+                </div>
+              </div>
+
+              <div class="settings-block">
+                <h3>Logo</h3>
+                <div class="form-grid">
+                  <div class="field"><label for="brandMark">Sigle (ex. KBO)</label><input type="text" id="brandMark" data-textkey="brandMark" maxlength="20" /></div>
+                  <div class="field"><label for="brandSub">Sous-titre (ex. corporate finance)</label><input type="text" id="brandSub" data-textkey="brandSub" maxlength="40" /></div>
+                </div>
+              </div>
+
+              <div class="settings-block">
+                <h3>Titre de l'accueil</h3>
+                <div class="form-grid">
+                  <div class="field field--full"><label for="heroEyebrow">Sur-titre (au-dessus du nom)</label><input type="text" id="heroEyebrow" data-textkey="heroEyebrow" maxlength="80" /></div>
+                  <div class="field"><label for="name">Votre nom <span class="req">*</span></label><input type="text" id="name" data-textkey="name" maxlength="80" /></div>
+                  <div class="field"><label for="role">Votre rôle / accroche</label><input type="text" id="role" data-textkey="role" maxlength="120" placeholder="banquier de marché & trader" /></div>
+                  <div class="field field--full"><label for="presentation">Texte de présentation</label><textarea id="presentation" data-textkey="presentation" maxlength="1200" style="min-height:120px"></textarea></div>
+                </div>
+                <p class="hint">Le titre d'accueil affichera votre nom : <strong id="titlePreviewName">…</strong>, puis votre rôle en dessous : <span id="titlePreviewRole">…</span></p>
+              </div>
+
+              <div class="settings-block">
+                <h3>Photos de la biographie</h3>
+                <p class="muted" style="font-size:.92rem">Remplacez les trois illustrations de la page Personnel par vos propres photos. (Modifiables aussi directement sur la page, une fois connecté.)</p>
+                <div class="bio-slots">
+                  <div class="bio-slot"><div class="photo-preview"><img id="bio1Preview" src="images/journey.svg" alt=""></div><span class="btn btn--ghost file-btn" style="font-size:.82rem;padding:.55em 1em">Photo 1<input type="file" id="bio1File" accept="image/*"></span></div>
+                  <div class="bio-slot"><div class="photo-preview"><img id="bio2Preview" src="images/markets.svg" alt=""></div><span class="btn btn--ghost file-btn" style="font-size:.82rem;padding:.55em 1em">Photo 2<input type="file" id="bio2File" accept="image/*"></span></div>
+                  <div class="bio-slot"><div class="photo-preview"><img id="bio3Preview" src="images/writing.svg" alt=""></div><span class="btn btn--ghost file-btn" style="font-size:.82rem;padding:.55em 1em">Photo 3<input type="file" id="bio3File" accept="image/*"></span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Textes des pages -->
+          <div class="tabpanel" data-panel="textes">
+            <div class="form-wrap">
+              <h3>Accueil — section « Deux chemins »</h3>
+              <div class="form-grid">
+                <div class="field field--full"><label for="homePathsTitle">Titre</label><input type="text" id="homePathsTitle" data-textkey="homePathsTitle" maxlength="120" /></div>
+                <div class="field field--full"><label for="homePathsIntro">Introduction</label><textarea id="homePathsIntro" data-textkey="homePathsIntro" maxlength="400"></textarea></div>
+              </div>
+              <div class="settings-block">
+                <h3>Accueil — section « Ma démarche »</h3>
+                <div class="form-grid">
+                  <div class="field field--full"><label for="homePhilosophyTitle">Titre</label><input type="text" id="homePhilosophyTitle" data-textkey="homePhilosophyTitle" maxlength="160" /></div>
+                  <div class="field field--full"><label for="homePhilosophyText">Texte</label><textarea id="homePhilosophyText" data-textkey="homePhilosophyText" maxlength="700"></textarea></div>
+                </div>
+              </div>
+              <div class="settings-block">
+                <h3>Pied de page &amp; Contact</h3>
+                <div class="form-grid">
+                  <div class="field field--full"><label for="footerAbout">Texte du pied de page</label><textarea id="footerAbout" data-textkey="footerAbout" maxlength="400"></textarea></div>
+                  <div class="field field--full"><label for="contactTitle">Titre de la page Contact</label><input type="text" id="contactTitle" data-textkey="contactTitle" maxlength="120" /></div>
+                  <div class="field field--full"><label for="contactIntro">Introduction de la page Contact</label><textarea id="contactIntro" data-textkey="contactIntro" maxlength="400"></textarea></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Réseaux & Contact -->
+          <div class="tabpanel" data-panel="reseaux">
+            <div class="form-wrap">
+              <h3>Adresse e-mail de réception</h3>
+              <div class="field field--full">
+                <label for="email">Les messages du formulaire arrivent à cette adresse <span class="req">*</span></label>
+                <input type="email" id="email" required placeholder="vous@exemple.com" />
+                <span class="hint" id="emailStatus"></span>
+              </div>
+              <div class="settings-block">
+                <h3>Réseaux sociaux</h3>
+                <p class="muted" style="font-size:.92rem">Laissez un champ vide pour masquer le réseau sur le site.</p>
+                <div class="form-grid">
+                  <div class="field"><label for="linkedin">LinkedIn</label><input type="text" inputmode="url" id="linkedin" placeholder="linkedin.com/in/…" /></div>
+                  <div class="field"><label for="x">X (Twitter)</label><input type="text" inputmode="url" id="x" placeholder="x.com/…" /></div>
+                  <div class="field"><label for="youtube">YouTube</label><input type="text" inputmode="url" id="youtube" placeholder="youtube.com/@…" /></div>
+                  <div class="field"><label for="facebook">Facebook</label><input type="text" inputmode="url" id="facebook" placeholder="facebook.com/…" /></div>
+                  <div class="field field--full"><label for="instagram">Instagram</label><input type="text" inputmode="url" id="instagram" placeholder="instagram.com/…" /></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="save-bar">
+            <button class="btn btn--primary" type="submit" id="saveBtn">Enregistrer les modifications</button>
+            <span class="form-msg" id="saveMsg"></span>
+          </div>
+        </form>
+
+        <!-- ===== BLOG & HISTOIRES ===== -->
+        <div class="tabpanel" data-panel="blog">
+          <div class="form-wrap" style="margin-bottom:2rem">
+            <h3>Nouvelle publication</h3>
+            <form id="articleForm">
+              <div class="form-grid">
+                <div class="field field--full"><label for="a_title">Titre <span class="req">*</span></label><input type="text" id="a_title" name="title" required maxlength="160" /></div>
+                <div class="field">
+                  <label for="a_type">Type de contenu</label>
+                  <select id="a_type" name="type">
+                    <option value="article">Article / réflexion</option>
+                    <option value="story">Histoire</option>
+                    <option value="video">Vidéo</option>
+                  </select>
+                </div>
+                <div class="field"><label for="a_tag">Rubrique</label><input type="text" id="a_tag" name="tag" maxlength="40" placeholder="Marchés, Écriture…" /></div>
+                <div class="field"><label for="a_date">Date</label><input type="date" id="a_date" name="date" /></div>
+
+                <div class="field field--full">
+                  <label>Image d'aperçu</label>
+                  <div class="media-inline">
+                    <div class="media-inline__preview" id="a_imagePreview"></div>
+                    <div class="stack">
+                      <span class="btn btn--ghost file-btn" style="font-size:.85rem;padding:.6em 1.1em">Téléverser une image<input type="file" id="a_imageFile" accept="image/*" /></span>
+                      <button type="button" class="btn-link" id="a_pickImage">ou choisir dans mes médias</button>
+                      <span class="hint" id="a_imageName">Optionnel.</span>
+                    </div>
+                  </div>
+                  <input type="hidden" id="a_image" name="image" />
+                </div>
+
+                <!-- Champs vidéo -->
+                <div class="field field--full video-only" hidden>
+                  <label>Format de la vidéo</label>
+                  <div class="seg" role="radiogroup">
+                    <label class="seg__opt"><input type="radio" name="orientation" value="vertical" checked /> <span>Verticale (mobile) 9:16</span></label>
+                    <label class="seg__opt"><input type="radio" name="orientation" value="landscape" /> <span>Horizontale 16:9</span></label>
+                  </div>
+                </div>
+                <div class="field field--full video-only" hidden>
+                  <label>Vidéo téléversée (mp4, webm, mov)</label>
+                  <div class="media-inline">
+                    <div class="media-inline__preview" id="a_videoPreview"></div>
+                    <div class="stack">
+                      <span class="btn btn--ghost file-btn" style="font-size:.85rem;padding:.6em 1.1em">Téléverser une vidéo<input type="file" id="a_videoFile" accept="video/*" /></span>
+                      <span class="hint" id="a_videoName">Idéal pour vos vidéos filmées au téléphone.</span>
+                    </div>
+                  </div>
+                  <input type="hidden" id="a_videoPath" name="videoFile" />
+                </div>
+                <div class="field field--full video-only" hidden>
+                  <label for="a_video">…ou lien YouTube / Vimeo (optionnel)</label>
+                  <input type="text" id="a_video" name="video" placeholder="https://youtube.com/watch?v=…" />
+                </div>
+
+                <div class="field field--full"><label for="a_excerpt">Extrait <span class="req">*</span></label><textarea id="a_excerpt" name="excerpt" required maxlength="280" style="min-height:70px"></textarea></div>
+                <div class="field field--full"><label for="a_body">Contenu</label><textarea id="a_body" name="body" style="min-height:170px" placeholder="Séparez les paragraphes par une ligne vide."></textarea></div>
+              </div>
+              <div class="form-actions">
+                <button class="btn btn--primary" type="submit">Publier</button>
+                <span class="form-msg" id="articleMsg"></span>
+              </div>
+            </form>
+          </div>
+          <h3>Publications</h3>
+          <div id="adminList" class="stack" style="margin-top:1rem"><p class="muted">Chargement…</p></div>
+        </div>
+
+        <!-- ===== GALERIE / ALBUM ===== -->
+        <div class="tabpanel" data-panel="galerie">
+          <div class="form-wrap" style="margin-bottom:2rem">
+            <h3>Galerie / Album photos & vidéos</h3>
+            <p class="muted" style="font-size:.92rem">Téléversez vos photos d'événements ou avec des personnes importantes, ainsi que vos vidéos (verticales acceptées). Les éléments publiés s'affichent dans la section « En images » de la page Personnel.</p>
+            <div class="form-grid">
+              <div class="field field--full">
+                <label>Fichier (image ou vidéo)</label>
+                <div class="media-inline">
+                  <div class="media-inline__preview is-empty" id="galPreview"></div>
+                  <div class="stack">
+                    <span class="btn btn--ghost file-btn" style="font-size:.85rem;padding:.6em 1.1em">Choisir un fichier<input type="file" id="galFile" accept="image/*,video/*"></span>
+                    <span class="hint" id="galFileName">Aucun fichier sélectionné.</span>
+                  </div>
+                </div>
+              </div>
+              <div class="field field--full"><label for="galCaption">Légende (optionnel)</label><input type="text" id="galCaption" maxlength="200" placeholder="Ex. Conférence à Cotonou, 2025"></div>
+              <div class="field field--full gal-video-only" hidden>
+                <label>Format de la vidéo</label>
+                <div class="seg" role="radiogroup">
+                  <label class="seg__opt"><input type="radio" name="galOrientation" value="vertical" checked> <span>Verticale (mobile) 9:16</span></label>
+                  <label class="seg__opt"><input type="radio" name="galOrientation" value="landscape"> <span>Horizontale 16:9</span></label>
+                </div>
+              </div>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn--primary" id="galPublish" type="button" disabled>Publier dans la galerie</button>
+              <span class="form-msg" id="galMsg"></span>
+            </div>
+          </div>
+          <h3>Éléments de la galerie</h3>
+          <div id="galAdminGrid" class="media-grid" style="margin-top:1rem"><p class="muted">Chargement…</p></div>
+        </div>
+
+        <!-- ===== MÉDIAS ===== -->
+        <div class="tabpanel" data-panel="medias">
+          <div class="form-wrap" style="margin-bottom:2rem">
+            <h3>Bibliothèque de médias</h3>
+            <p class="muted" style="font-size:.92rem">Téléversez vos images et vidéos pour les réutiliser partout sur le site. Vidéos verticales acceptées (max 200 Mo).</p>
+            <span class="btn btn--primary file-btn">Téléverser un fichier<input type="file" id="mediaFile" accept="image/*,video/*" multiple /></span>
+            <span class="form-msg" id="mediaMsg" style="margin-left:1rem"></span>
+          </div>
+          <div id="mediaGrid" class="media-grid"><p class="muted">Chargement…</p></div>
+        </div>
+
+        <!-- ===== COMPTE & E-MAIL ===== -->
+        <div class="tabpanel" data-panel="compte">
+          <div class="form-wrap" style="margin-bottom:2rem">
+            <h3>Recevoir les messages par e-mail</h3>
+            <p class="muted" style="font-size:.92rem">Pour que les messages du formulaire de contact arrivent <strong>directement dans votre boîte mail</strong>, renseignez ici votre messagerie. Avec Gmail, créez un « mot de passe d'application » (Compte Google → Sécurité → Validation en 2 étapes → Mots de passe des applications) et collez‑le ci‑dessous.</p>
+            <div class="form-grid">
+              <div class="field"><label for="mailHost">Serveur SMTP</label><input type="text" id="mailHost" value="smtp.gmail.com" /></div>
+              <div class="field"><label for="mailPort">Port</label><input type="text" id="mailPort" inputmode="numeric" value="587" /></div>
+              <div class="field field--full"><label for="mailUser">Votre adresse e-mail (expéditeur)</label><input type="email" id="mailUser" placeholder="Obedkabeya1996@gmail.com" /></div>
+              <div class="field field--full"><label for="mailPass">Mot de passe d'application</label><input type="password" id="mailPass" placeholder="•••• •••• •••• ••••" autocomplete="new-password" /><span class="hint" id="mailPassHint"></span></div>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn--primary" id="mailSave" type="button">Enregistrer</button>
+              <button class="btn btn--ghost" id="mailTest" type="button">Envoyer un e-mail de test</button>
+              <span class="form-msg" id="mailMsg"></span>
+            </div>
+            <p class="hint">Les messages arriveront à l'adresse définie dans <strong>Réseaux &amp; Contact → Adresse e-mail de réception</strong>. Sans cette configuration, les messages restent enregistrés mais ne sont pas envoyés.</p>
+          </div>
+
+          <div class="form-wrap">
+            <h3>Mot de passe administrateur</h3>
+            <p class="muted" style="font-size:.92rem">Changez le mot de passe qui protège cet espace. Vous seul y avez accès — les visiteurs ne voient aucun bouton d'administration.</p>
+            <div class="form-grid">
+              <div class="field"><label for="pwNew">Nouveau mot de passe</label><input type="password" id="pwNew" autocomplete="new-password" /></div>
+              <div class="field"><label for="pwConfirm">Confirmer</label><input type="password" id="pwConfirm" autocomplete="new-password" /></div>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn--primary" id="pwSave" type="button">Changer le mot de passe</button>
+              <span class="form-msg" id="pwMsg"></span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Media picker modal -->
+  <div id="pickerModal" class="modal" hidden>
+    <div class="modal__box">
+      <div class="modal__head"><h3>Choisir une image</h3><button class="modal__close" id="pickerClose" aria-label="Fermer">×</button></div>
+      <div id="pickerGrid" class="media-grid media-grid--picker"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"><span class="check">✓</span><span id="toastText">Modifications enregistrées</span></div>
+
+  <div id="site-footer"></div>
+  <script src="js/components.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

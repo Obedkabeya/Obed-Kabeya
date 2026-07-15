@@ -1,0 +1,16 @@
+<svg viewBox="0 0 500 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Réflexion stratégique">
+  <rect width="500" height="400" fill="#f6f8fc"/>
+  <g stroke="#c9d3e6" stroke-width="1.5">
+    <line x1="120" y1="110" x2="250" y2="200"/><line x1="250" y1="200" x2="380" y2="110"/>
+    <line x1="120" y1="290" x2="250" y2="200"/><line x1="250" y1="200" x2="380" y2="290"/>
+    <line x1="120" y1="110" x2="120" y2="290"/><line x1="380" y1="110" x2="380" y2="290"/>
+  </g>
+  <g>
+    <circle cx="120" cy="110" r="14" fill="#fff" stroke="#1f4f9c" stroke-width="2"/>
+    <circle cx="380" cy="110" r="14" fill="#fff" stroke="#1f4f9c" stroke-width="2"/>
+    <circle cx="120" cy="290" r="14" fill="#fff" stroke="#1f4f9c" stroke-width="2"/>
+    <circle cx="380" cy="290" r="14" fill="#fff" stroke="#1f4f9c" stroke-width="2"/>
+    <circle cx="250" cy="200" r="22" fill="#0a1f44"/>
+    <circle cx="250" cy="200" r="22" fill="none" stroke="#7ea6e8" stroke-width="2"/>
+  </g>
+</svg>

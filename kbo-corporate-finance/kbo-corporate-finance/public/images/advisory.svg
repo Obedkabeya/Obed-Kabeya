@@ -1,0 +1,16 @@
+<svg viewBox="0 0 500 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Conseil en investissement">
+  <rect width="500" height="400" fill="#f6f8fc"/>
+  <circle cx="250" cy="200" r="120" fill="#fff" stroke="#e6e9ef" stroke-width="2"/>
+  <circle cx="250" cy="200" r="120" fill="none" stroke="#c9d3e6" stroke-width="1" stroke-dasharray="3 8"/>
+  <g stroke="#0a1f44" stroke-width="1.5">
+    <line x1="250" y1="90"  x2="250" y2="110"/><line x1="250" y1="290" x2="250" y2="310"/>
+    <line x1="140" y1="200" x2="160" y2="200"/><line x1="340" y1="200" x2="360" y2="200"/>
+  </g>
+  <!-- compass needle -->
+  <g transform="rotate(35 250 200)">
+    <path d="M250 110 L268 200 L250 218 L232 200 Z" fill="#1f4f9c"/>
+    <path d="M250 290 L232 200 L250 182 L268 200 Z" fill="#0a1f44"/>
+  </g>
+  <circle cx="250" cy="200" r="8" fill="#fff" stroke="#0a1f44" stroke-width="2"/>
+  <path d="M120 320 L180 300 L230 312 L300 280 L380 300" fill="none" stroke="#7ea6e8" stroke-width="2" opacity="0.6"/>
+</svg>
