@@ -155,12 +155,11 @@ p { margin: 0 0 1.1em; }
     position: fixed; inset: 72px 0 auto 0;
     flex-direction: column; align-items: flex-start; gap: 0;
     background: var(--navy-deep);
-    padding: 1rem var(--gutter) 2rem;
-    transform: translateY(-120%);
-    transition: transform 0.34s var(--ease);
+    padding: 0.5rem var(--gutter) 1.4rem;
     box-shadow: var(--shadow-md);
+    display: none;                 /* caché par défaut (évite tout débordement) */
   }
-  .nav.is-open .nav__links { transform: translateY(0); }
+  .nav.is-open .nav__links { display: flex; }
   .nav__links a { color: #eaf0fb; font-size: 1.1rem; width: 100%; padding: 0.9rem 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
   .nav__links a::after { display: none; }
   .nav__links a.is-active { color: #7ea6e8; }
@@ -302,36 +301,22 @@ p { margin: 0 0 1.1em; }
 body.has-admin-bar { padding-bottom: 96px; }
 
 /* =========================================================
-   MOBILE (téléphone) — interface type application
+   MOBILE (téléphone) — réglages spécifiques
    Ordinateur & tablette gardent le design d'origine.
    ========================================================= */
-.mobile-tabbar { display: none; }
+.mobile-tabbar { display: none !important; }   /* remplacée par le menu ☰ en haut */
+.hide-on-mobile { display: revert; }
 
 @media (max-width: 600px) {
-  /* App-like bottom tab navigation */
-  .mobile-tabbar {
-    display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 440;
-    background: rgba(255,255,255,0.97); backdrop-filter: saturate(160%) blur(14px);
-    border-top: 1px solid var(--line);
-    padding: 7px 4px calc(7px + env(safe-area-inset-bottom, 0px));
-    justify-content: space-around; box-shadow: 0 -4px 20px -14px rgba(6,21,46,0.4);
-  }
-  .mobile-tabbar a { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 0.6rem; font-weight: 600; color: var(--gray); padding: 3px 0; letter-spacing: 0.01em; }
-  .mobile-tabbar a.is-active { color: var(--blue); }
-  .mobile-tabbar svg { width: 23px; height: 23px; }
-  body { padding-bottom: 66px; }
-  .site-footer { padding-bottom: 84px; }
-
-  /* Top bar: keep the logo, drop the burger + its dropdown panel
-     (navigation lives in the bottom tab bar). The dropdown panel was peeking
-     from the top as a navy band over the logo — hide it entirely. */
-  .nav__toggle { display: none !important; }
-  .nav__links { display: none !important; }
-  .nav { height: 60px; justify-content: flex-start; }
+  /* Navigation : petit menu ☰ en haut (le burger, hérité du bloc ≤860px) */
+  .nav { height: 60px; }
   .brand__mark { font-size: 1.25rem; }
   .brand__sub { font-size: 0.6rem; letter-spacing: 0.12em; }
 
-  /* Hero reworked for a phone */
+  /* Masquer certaines sections sur téléphone (ex. « Par où commencer ? ») */
+  .hide-on-mobile { display: none !important; }
+
+  /* Hero repensé pour un téléphone */
   .hero__grid { grid-template-columns: 1fr; padding-block: 22px 6px; gap: 18px; }
   .hero__portrait { max-width: 100%; aspect-ratio: 5 / 4; border-radius: 14px; }
   .hero__role { margin-bottom: 0.8rem; }
@@ -339,7 +324,7 @@ body.has-admin-bar { padding-bottom: 96px; }
   .hero__cta { flex-direction: column; gap: 0.7rem; margin-top: 1.4rem; }
   .hero__cta .btn { width: 100%; justify-content: center; padding-block: 0.95em; }
 
-  /* Tighter rhythm + comfy tap targets */
+  /* Rythme plus serré + zones tactiles confortables */
   .section { padding-block: 42px; }
   .page-intro { padding-block: 32px 22px; }
   h1 { font-size: clamp(1.9rem, 8.5vw, 2.4rem); }
@@ -349,9 +334,17 @@ body.has-admin-bar { padding-bottom: 96px; }
   .feature { gap: 22px; padding-block: 22px; }
   .form-wrap { padding: 22px 18px; }
 
-  /* Bottom-fixed bars stack above the tab bar */
-  .admin-bar { bottom: 60px; }
-  body.has-admin-bar { padding-bottom: 190px; }
+  /* Services (page Professionnel) en carrousel horizontal sur téléphone */
+  .services {
+    display: flex !important; grid-template-columns: none !important;
+    gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch; padding: 2px 2px 14px; margin-inline: -2px;
+    scrollbar-width: none;
+  }
+  .services::-webkit-scrollbar { display: none; }
+  .service-card { flex: 0 0 82% !important; scroll-snap-align: start; }
+
+  /* Barres fixes en bas (plus de tab bar à contourner) */
   .preview-bar { bottom: 78px; left: 12px; right: 12px; transform: none; justify-content: center; text-align: center; }
 }
 

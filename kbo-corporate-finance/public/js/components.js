@@ -83,20 +83,6 @@
   if (h) h.outerHTML = header;
   if (f) f.outerHTML = footer;
 
-  // App-style bottom tab bar (shown only on phones via CSS)
-  const tabIcon = {
-    accueil: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/></svg>',
-    personnel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>',
-    galerie: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m5 18 5-5 4 4 2-2 3 3"/></svg>',
-    professionnel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
-    contact: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>',
-  };
-  const tabLabel = { accueil: "Accueil", personnel: "Perso", galerie: "Galerie", professionnel: "Services", contact: "Contact" };
-  const tabbar = `<nav class="mobile-tabbar" aria-label="Navigation">
-    ${links.map(l => `<a href="${l.href}" class="${page === l.key ? "is-active" : ""}">${tabIcon[l.key]}<span>${tabLabel[l.key]}</span></a>`).join("")}
-  </nav>`;
-  document.body.insertAdjacentHTML("beforeend", tabbar);
-
   // Secret owner access: tap the footer copyright 5 times quickly → login page.
   // No visible admin link for visitors; only you know the gesture.
   (function () {

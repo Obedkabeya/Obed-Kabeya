@@ -61,6 +61,111 @@ SESSIONS_FILE = os.path.join(DATA_DIR, "sessions.json")   # sessions d'authentif
 SESSION_COOKIE = "kbo_session"
 SESSION_MAX_AGE = 30 * 24 * 3600  # 30 jours
 
+# ============================================================
+#  Stockage : PostgreSQL (Railway) si DATABASE_URL est présent,
+#  sinon fichiers JSON locaux (développement sur votre Mac).
+#  La bascule est automatique — aucune configuration nécessaire.
+# ============================================================
+DATABASE_URL = os.environ.get("DATABASE_URL", "").strip()
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = "postgresql://" + DATABASE_URL[len("postgres://"):]
+try:
+    if DATABASE_URL:
+        import psycopg2
+        from psycopg2.extras import Json as _PgJson
+        DB_ENABLED = True
+    else:
+        DB_ENABLED = False
+except Exception:            # psycopg2 absent → on reste sur les fichiers locaux
+    DB_ENABLED = False
+
+
+def _kv_key(path):
+    """Clé de stockage = nom du fichier de données sans extension (ex. 'settings')."""
+    return os.path.splitext(os.path.basename(path))[0]
+
+
+import threading
+_DB_LOCK = threading.Lock()
+_DB_CONN = None
+
+
+def _db_conn():
+    """Connexion PostgreSQL réutilisée (rapide), rouverte si nécessaire."""
+    global _DB_CONN
+    if _DB_CONN is None or getattr(_DB_CONN, "closed", 1):
+        _DB_CONN = psycopg2.connect(DATABASE_URL, connect_timeout=10)
+        _DB_CONN.autocommit = True
+    return _DB_CONN
+
+
+def _db_exec(run):
+    """Exécute run(cursor) de façon thread-safe, avec une reconnexion si besoin."""
+    global _DB_CONN
+    with _DB_LOCK:
+        for attempt in range(2):
+            try:
+                with _db_conn().cursor() as cur:
+                    return run(cur)
+            except (psycopg2.OperationalError, psycopg2.InterfaceError):
+                try:
+                    if _DB_CONN:
+                        _DB_CONN.close()
+                except Exception:
+                    pass
+                _DB_CONN = None
+                if attempt == 1:
+                    raise
+
+
+def _db():
+    """Contexte simple pour l'initialisation (avec ... as conn)."""
+    conn = psycopg2.connect(DATABASE_URL, connect_timeout=10)
+    conn.autocommit = True
+    return conn
+
+
+def _kv_get(key, default):
+    def run(cur):
+        cur.execute("SELECT value FROM kv_store WHERE key=%s", (key,))
+        row = cur.fetchone()
+        return row[0] if row else default
+    return _db_exec(run)
+
+
+def _kv_set(key, value):
+    def run(cur):
+        cur.execute(
+            "INSERT INTO kv_store(key, value, updated) VALUES (%s, %s, now()) "
+            "ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated = now()",
+            (key, _PgJson(value)))
+    _db_exec(run)
+
+
+def _file_put(rel_path, data, mime):
+    def run(cur):
+        cur.execute(
+            "INSERT INTO files(path, mime, data, added) VALUES (%s, %s, %s, now()) "
+            "ON CONFLICT (path) DO UPDATE SET data = EXCLUDED.data, mime = EXCLUDED.mime",
+            (rel_path, mime, psycopg2.Binary(data)))
+    _db_exec(run)
+
+
+def _file_get(rel_path):
+    def run(cur):
+        cur.execute("SELECT data, mime FROM files WHERE path=%s", (rel_path,))
+        row = cur.fetchone()
+        if not row:
+            return None
+        return bytes(row[0]), (row[1] or "application/octet-stream")
+    return _db_exec(run)
+
+
+def _file_delete(rel_path):
+    def run(cur):
+        cur.execute("DELETE FROM files WHERE path=%s", (rel_path,))
+    _db_exec(run)
+
 PORT = int(os.environ.get("PORT", "8000"))
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "kbo-admin")
 
@@ -155,10 +260,70 @@ CONTENT_TYPES = {
 
 
 # ----------------------------- storage helpers -----------------------------
+_DATA_FILES = [ARTICLES_FILE, SUBMISSIONS_FILE, SETTINGS_FILE, MEDIA_FILE, GALLERY_FILE,
+               CONTENT_FILE, IMGCONTENT_FILE, SLIDES_FILE, AUTH_FILE, MAIL_FILE, SESSIONS_FILE]
+_LIST_KEYS = {"articles", "submissions", "media", "gallery"}
+
+
+def _default_for(key):
+    if key == "settings":
+        return DEFAULT_SETTINGS
+    return [] if key in _LIST_KEYS else {}
+
+
+def _db_init():
+    """Crée les tables et importe (une seule fois) les données et images
+    livrées avec le site vers PostgreSQL. Ainsi rien n'est perdu à la mise
+    en ligne, et tout devient permanent."""
+    with _db() as conn, conn.cursor() as cur:
+        cur.execute("CREATE TABLE IF NOT EXISTS kv_store ("
+                    "key TEXT PRIMARY KEY, value JSONB NOT NULL, updated TIMESTAMPTZ DEFAULT now())")
+        cur.execute("CREATE TABLE IF NOT EXISTS files ("
+                    "path TEXT PRIMARY KEY, mime TEXT, data BYTEA, added TIMESTAMPTZ DEFAULT now())")
+        for path in _DATA_FILES:
+            key = _kv_key(path)
+            cur.execute("SELECT 1 FROM kv_store WHERE key=%s", (key,))
+            if cur.fetchone():
+                continue
+            val = None
+            if os.path.exists(path):
+                try:
+                    with open(path, "r", encoding="utf-8") as f:
+                        val = json.load(f)
+                except Exception:
+                    val = None
+            if val is None:
+                val = _default_for(key)
+            cur.execute("INSERT INTO kv_store(key, value) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                        (key, _PgJson(val)))
+        for folder, prefix in ((MEDIA_DIR, "uploads"), (UPLOAD_DIR, "images/uploads")):
+            if not os.path.isdir(folder):
+                continue
+            for name in os.listdir(folder):
+                if name.startswith("."):
+                    continue
+                rel = prefix + "/" + name
+                cur.execute("SELECT 1 FROM files WHERE path=%s", (rel,))
+                if cur.fetchone():
+                    continue
+                try:
+                    with open(os.path.join(folder, name), "rb") as f:
+                        data = f.read()
+                except Exception:
+                    continue
+                mime = CONTENT_TYPES.get(os.path.splitext(name)[1].lower(), "application/octet-stream")
+                cur.execute("INSERT INTO files(path, mime, data) VALUES (%s, %s, %s) ON CONFLICT DO NOTHING",
+                            (rel, mime, psycopg2.Binary(data)))
+    print("  [DB] PostgreSQL initialisé — données permanentes.", flush=True)
+
+
 def _ensure_data():
     os.makedirs(DATA_DIR, exist_ok=True)
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     os.makedirs(MEDIA_DIR, exist_ok=True)
+    if DB_ENABLED:
+        _db_init()
+        return
     if not os.path.exists(ARTICLES_FILE):
         _write_json(ARTICLES_FILE, [])
     if not os.path.exists(SUBMISSIONS_FILE):
@@ -210,6 +375,11 @@ def _get_settings():
 
 
 def _read_json(path, default):
+    if DB_ENABLED:
+        try:
+            return _kv_get(_kv_key(path), default)
+        except Exception as e:
+            print("  [DB] lecture échouée (%s) → repli fichier : %s" % (_kv_key(path), e), flush=True)
     try:
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -218,6 +388,12 @@ def _read_json(path, default):
 
 
 def _write_json(path, data):
+    if DB_ENABLED:
+        try:
+            _kv_set(_kv_key(path), data)
+            return
+        except Exception as e:
+            print("  [DB] écriture échouée (%s) → repli fichier : %s" % (_kv_key(path), e), flush=True)
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
@@ -395,9 +571,18 @@ def _save_upload(data_url):
         return None, "Image trop lourde (max 5 Mo)."
     ext = ALLOWED_IMAGE_MIME[mime]
     name = "photo-%s%s" % (uuid.uuid4().hex[:10], ext)
-    with open(os.path.join(UPLOAD_DIR, name), "wb") as f:
-        f.write(raw)
-    return "images/uploads/%s" % name, None
+    rel = "images/uploads/%s" % name
+    _store_upload(rel, raw, CONTENT_TYPES.get(ext, "image/jpeg"), os.path.join(UPLOAD_DIR, name))
+    return rel, None
+
+
+def _store_upload(rel_path, data, mime, disk_path):
+    """Enregistre un fichier téléversé : base PostgreSQL si active, sinon disque."""
+    if DB_ENABLED:
+        _file_put(rel_path, data, mime)
+    else:
+        with open(disk_path, "wb") as f:
+            f.write(data)
 
 
 # ----------------------------- request handler -----------------------------
@@ -836,22 +1021,22 @@ class Handler(BaseHTTPRequestHandler):
 
         kind = ALLOWED_MEDIA_EXT[ext]
         name = "%s-%s%s" % (kind, uuid.uuid4().hex[:10], ext)
-        dest = os.path.join(MEDIA_DIR, name)
-        written = 0
-        try:
-            with open(dest, "wb") as f:
-                remaining = length
-                while remaining > 0:
-                    chunk = self.rfile.read(min(65536, remaining))
-                    if not chunk:
-                        break
-                    f.write(chunk)
-                    written += len(chunk)
-                    remaining -= len(chunk)
-        except OSError:
-            return self._send_json({"error": "Écriture impossible."}, 500)
-
         rel = "uploads/%s" % name
+        mime = CONTENT_TYPES.get(ext, "application/octet-stream")
+        # Lire le corps en mémoire (permet le stockage base de données)
+        buf = bytearray()
+        remaining = length
+        while remaining > 0:
+            chunk = self.rfile.read(min(65536, remaining))
+            if not chunk:
+                break
+            buf.extend(chunk)
+            remaining -= len(chunk)
+        written = len(buf)
+        try:
+            _store_upload(rel, bytes(buf), mime, os.path.join(MEDIA_DIR, name))
+        except Exception as exc:
+            return self._send_json({"error": "Écriture impossible : %s" % exc}, 500)
         entry = {
             "name": name,
             "path": rel,
@@ -878,12 +1063,18 @@ class Handler(BaseHTTPRequestHandler):
             return self._send_json({"error": "Nom invalide"}, 400)
         media = _read_json(MEDIA_FILE, [])
         remaining = [m for m in media if m.get("name") != name]
-        try:
-            fp = os.path.join(MEDIA_DIR, name)
-            if os.path.isfile(fp):
-                os.remove(fp)
-        except OSError:
-            pass
+        if DB_ENABLED:
+            try:
+                _file_delete("uploads/" + name)
+            except Exception:
+                pass
+        else:
+            try:
+                fp = os.path.join(MEDIA_DIR, name)
+                if os.path.isfile(fp):
+                    os.remove(fp)
+            except OSError:
+                pass
         _write_json(MEDIA_FILE, remaining)
         return self._send_json({"ok": True})
 
@@ -1050,6 +1241,20 @@ class Handler(BaseHTTPRequestHandler):
         if not full.startswith(PUBLIC_DIR):
             self.send_error(403, "Forbidden")
             return
+
+        # Fichiers téléversés : servis depuis PostgreSQL en production
+        # (le disque de Railway est éphémère).
+        if DB_ENABLED and (rel.startswith("uploads/") or rel.startswith("images/uploads/")):
+            try:
+                hit = _file_get(rel)
+            except Exception:
+                hit = None
+            if hit is not None:
+                data, mime = hit
+                if os.path.splitext(rel)[1].lower() in (".mp4", ".webm", ".mov", ".m4v"):
+                    return self._serve_bytes_ranged(data, mime)
+                return self._send_bytes(data, mime, cache=True)
+
         if os.path.isdir(full):
             full = os.path.join(full, "index.html")
         if not os.path.isfile(full):
@@ -1171,6 +1376,49 @@ class Handler(BaseHTTPRequestHandler):
         text = text.replace("</head>", tags + "</head>", 1)
         return text.encode("utf-8")
 
+    def _send_bytes(self, data, ctype, cache=False):
+        self.send_response(200)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "public, max-age=3600" if cache else "no-cache")
+        self.end_headers()
+        try:
+            self.wfile.write(data)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
+    def _serve_bytes_ranged(self, data, ctype):
+        """Sert des octets en mémoire (vidéo depuis la base) avec support Range."""
+        size = len(data)
+        rng = self.headers.get("Range", "")
+        start, end = 0, size - 1
+        m = re.match(r"bytes=(\d*)-(\d*)", rng or "")
+        partial = False
+        if m and (m.group(1) or m.group(2)):
+            partial = True
+            if m.group(1):
+                start = int(m.group(1))
+            if m.group(2):
+                end = int(m.group(2))
+            if m.group(1) == "":
+                start = max(0, size - int(m.group(2)))
+                end = size - 1
+            start = min(start, size - 1)
+            end = min(end, size - 1)
+        chunk = data[start:end + 1]
+        self.send_response(206 if partial else 200)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Accept-Ranges", "bytes")
+        self.send_header("Content-Length", str(len(chunk)))
+        if partial:
+            self.send_header("Content-Range", "bytes %d-%d/%d" % (start, end, size))
+        self.send_header("Cache-Control", "public, max-age=3600")
+        self.end_headers()
+        try:
+            self.wfile.write(chunk)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
     def _serve_ranged(self, full, ctype):
         try:
             size = os.path.getsize(full)
@@ -1226,6 +1474,8 @@ def main():
     server = ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
     print("―" * 60)
     print("  KBO Corporate Finance")
+    print("  Stockage   : %s" % ("PostgreSQL (permanent)" if DB_ENABLED
+          else "fichiers JSON locaux (dossier data/)"))
     print("  Site       : http://localhost:%d" % PORT)
     print("  Admin      : http://localhost:%d/admin.html  (tableau de bord complet)" % PORT)
     _pw_custom = os.path.exists(AUTH_FILE)
