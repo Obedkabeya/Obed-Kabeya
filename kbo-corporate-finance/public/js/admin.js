@@ -359,10 +359,10 @@
       .then(r => r.json()).then(c => {
         const el = $("mailStatus"); if (!el) return;
         if (c.active) {
-          el.textContent = "✓ L'envoi d'e-mail est ACTIF (expéditeur : " + (c.user || "?") + ").";
+          el.textContent = "✓ L'envoi d'e-mail est ACTIF (via " + (c.provider || "?") + ", expéditeur : " + (c.from || "?") + ").";
           el.style.color = "#1a7a4c";
         } else {
-          el.textContent = "⚠ L'envoi d'e-mail n'est PAS actif — ajoutez SMTP_USER et SMTP_PASS dans les variables du serveur.";
+          el.textContent = "⚠ L'envoi d'e-mail n'est PAS actif — ajoutez BREVO_API_KEY (et MAIL_FROM) dans les variables du serveur.";
           el.style.color = "#b3261e";
         }
       }).catch(() => {});
