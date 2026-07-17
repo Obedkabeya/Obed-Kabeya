@@ -37,6 +37,8 @@ import smtplib
 import socket
 import ssl
 import uuid
+import urllib.request
+import urllib.error
 from email.message import EmailMessage
 from datetime import datetime, date
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -180,6 +182,14 @@ except ValueError:
 SMTP_USER = os.environ.get("SMTP_USER", "").strip()
 SMTP_PASS = os.environ.get("SMTP_PASS", "")            # mot de passe d'application Gmail
 SMTP_FROM = os.environ.get("SMTP_FROM", "").strip() or SMTP_USER
+
+# Envoi d'e-mail par API HTTP (port 443) — recommandé sur Railway, qui bloque
+# les ports SMTP sortants. Priorité : Brevo, puis SendGrid, puis SMTP (secours local).
+BREVO_API_KEY = os.environ.get("BREVO_API_KEY", "").strip()
+SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY", "").strip()
+# Adresse expéditrice (doit être un expéditeur VÉRIFIÉ chez Brevo/SendGrid).
+MAIL_FROM = os.environ.get("MAIL_FROM", "").strip() or SMTP_FROM or SMTP_USER
+MAIL_FROM_NAME = os.environ.get("MAIL_FROM_NAME", "").strip() or "KBO Corporate Finance"
 
 # Textes éditables du site (clés utilisées côté page via data-text="clé").
 DEFAULT_TEXTS = {
@@ -522,22 +532,83 @@ def _destroy_session(token):
         _write_json(SESSIONS_FILE, sessions)
 
 
-# ----------------------------- e-mail (SMTP) -----------------------------
+# ============================================================
+#  E-MAIL — priorité aux API HTTP (port 443, jamais bloqué par Railway) :
+#  1) Brevo   2) SendGrid   3) SMTP (secours, surtout en local)
+# ============================================================
 def _get_mail():
-    """Configuration SMTP lue UNIQUEMENT dans les variables d'environnement.
-    Aucun secret n'est stocké dans un fichier (donc rien à fuiter sur GitHub)."""
+    """État de l'e-mail (fournisseur + expéditeur). Ne renvoie AUCUN secret."""
+    if BREVO_API_KEY:
+        provider = "brevo"
+    elif SENDGRID_API_KEY:
+        provider = "sendgrid"
+    elif SMTP_HOST and SMTP_USER and SMTP_PASS:
+        provider = "smtp"
+    else:
+        provider = None
     return {
+        "provider": provider,
+        "active": provider is not None,
+        "from": MAIL_FROM,
+        # champs SMTP (secours local)
         "host": SMTP_HOST or "smtp.gmail.com",
         "port": SMTP_PORT or 465,
         "user": SMTP_USER,
         "pass": SMTP_PASS,
-        "from": SMTP_FROM or SMTP_USER,
     }
 
 
+def _http_post_json(url, headers, payload, timeout=25):
+    """POST JSON via urllib (HTTPS/443). Renvoie (ok: bool, détail: str)."""
+    data = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(url, data=data, method="POST")
+    req.add_header("Content-Type", "application/json")
+    for k, v in headers.items():
+        req.add_header(k, v)
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            code = resp.getcode()
+        return (200 <= code < 300), "HTTP %d" % code
+    except urllib.error.HTTPError as e:
+        try:
+            detail = e.read().decode("utf-8", "replace")[:400]
+        except Exception:
+            detail = ""
+        return False, "HTTP %d : %s" % (e.code, detail)
+    except Exception as exc:  # noqa: BLE001
+        return False, "%s" % exc
+
+
+def _send_via_brevo(from_email, from_name, to_addr, subject, body, reply_to=None):
+    payload = {
+        "sender": {"name": from_name, "email": from_email},
+        "to": [{"email": to_addr}],
+        "subject": subject,
+        "textContent": body,
+    }
+    if reply_to:
+        payload["replyTo"] = {"email": reply_to}
+    ok, detail = _http_post_json("https://api.brevo.com/v3/smtp/email",
+                                 {"api-key": BREVO_API_KEY, "accept": "application/json"}, payload)
+    return ok, ("envoyé (Brevo)" if ok else "erreur Brevo : " + detail)
+
+
+def _send_via_sendgrid(from_email, from_name, to_addr, subject, body, reply_to=None):
+    payload = {
+        "personalizations": [{"to": [{"email": to_addr}]}],
+        "from": {"email": from_email, "name": from_name},
+        "subject": subject,
+        "content": [{"type": "text/plain", "value": body}],
+    }
+    if reply_to:
+        payload["reply_to"] = {"email": reply_to}
+    ok, detail = _http_post_json("https://api.sendgrid.com/v3/mail/send",
+                                 {"Authorization": "Bearer " + SENDGRID_API_KEY}, payload)
+    return ok, ("envoyé (SendGrid)" if ok else "erreur SendGrid : " + detail)
+
+
 def _resolve_ipv4(host):
-    """Renvoie une adresse IPv4 du serveur, ou None si introuvable.
-    Railway n'ayant pas d'IPv6, forcer l'IPv4 évite « Network is unreachable »."""
+    """Adresse IPv4 du serveur (ou None). Force l'IPv4 pour le SMTP de secours."""
     try:
         infos = socket.getaddrinfo(host, None, socket.AF_INET, socket.SOCK_STREAM)
         if infos:
@@ -548,8 +619,6 @@ def _resolve_ipv4(host):
 
 
 class _SMTP_SSL_IPv4(smtplib.SMTP_SSL):
-    """SMTP_SSL qui se connecte en IPv4 tout en vérifiant le certificat sur le
-    vrai nom d'hôte (SNI = self._host)."""
     def _get_socket(self, host, port, timeout):
         ip = _resolve_ipv4(host) or host
         raw = socket.create_connection((ip, port), timeout, getattr(self, "source_address", None))
@@ -557,56 +626,57 @@ class _SMTP_SSL_IPv4(smtplib.SMTP_SSL):
 
 
 class _SMTP_IPv4(smtplib.SMTP):
-    """SMTP (STARTTLS) qui se connecte en IPv4."""
     def _get_socket(self, host, port, timeout):
         ip = _resolve_ipv4(host) or host
         return socket.create_connection((ip, port), timeout, getattr(self, "source_address", None))
 
 
-def _send_email(to_addr, subject, body, reply_to=None):
-    """Envoie un e-mail. Renvoie (envoyé: bool, détail: str).
-    - Port 465  -> SSL implicite (smtplib.SMTP_SSL), JAMAIS de starttls.
-    - Port 587  -> STARTTLS.
-    Connexion forcée en IPv4 (indispensable sur Railway)."""
-    cfg = _get_mail()
-    if not (cfg["host"] and cfg["user"] and cfg["pass"]):
-        return False, "SMTP non configuré"
-    host = cfg["host"]
+def _send_via_smtp(from_email, to_addr, subject, body, reply_to=None):
+    host = SMTP_HOST or "smtp.gmail.com"
     try:
-        port = int(cfg["port"] or 465)
+        port = int(SMTP_PORT or 465)
     except (TypeError, ValueError):
         port = 465
     try:
         msg = EmailMessage()
         msg["Subject"] = subject
-        msg["From"] = cfg["from"] or cfg["user"]
+        msg["From"] = from_email or SMTP_USER
         msg["To"] = to_addr
         if reply_to:
             msg["Reply-To"] = reply_to
         msg.set_content(body)
         context = ssl.create_default_context()
-
         if port == 465:
-            # SSL dès le départ (recommandé sur Railway). Aucun starttls.
             server = _SMTP_SSL_IPv4(host=host, port=port, context=context, timeout=30)
         else:
-            # STARTTLS pour 587 (ou autres ports en clair).
             server = _SMTP_IPv4(host=host, port=port, timeout=30)
-            server.ehlo()
-            server.starttls(context=context)
-            server.ehlo()
-
+            server.ehlo(); server.starttls(context=context); server.ehlo()
         try:
-            server.login(cfg["user"], cfg["pass"])
+            server.login(SMTP_USER, SMTP_PASS)
             server.send_message(msg)
         finally:
             try:
                 server.quit()
             except Exception:
                 pass
-        return True, "envoyé (port %d)" % port
-    except Exception as exc:  # noqa: BLE001 - report but never crash the request
-        return False, "erreur SMTP (port %d): %s" % (port, exc)
+        return True, "envoyé (SMTP port %d)" % port
+    except Exception as exc:  # noqa: BLE001
+        return False, "erreur SMTP (port %d) : %s" % (port, exc)
+
+
+def _send_email(to_addr, subject, body, reply_to=None):
+    """Envoie un e-mail. Renvoie (envoyé: bool, détail: str).
+    Priorité : Brevo (API HTTP) → SendGrid (API HTTP) → SMTP (secours)."""
+    from_email = MAIL_FROM or _get_settings().get("email", "")
+    from_name = MAIL_FROM_NAME
+    if BREVO_API_KEY:
+        return _send_via_brevo(from_email, from_name, to_addr, subject, body, reply_to)
+    if SENDGRID_API_KEY:
+        return _send_via_sendgrid(from_email, from_name, to_addr, subject, body, reply_to)
+    if SMTP_HOST and SMTP_USER and SMTP_PASS:
+        return _send_via_smtp(from_email, to_addr, subject, body, reply_to)
+    return False, ("Aucun service d'e-mail configuré. Ajoutez BREVO_API_KEY "
+                   "(recommandé sur Railway), ou SENDGRID_API_KEY, ou les variables SMTP.")
 
 
 def _save_upload(data_url):
@@ -749,7 +819,7 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "/api/settings":
             settings = _get_settings()
-            settings["_emailConfigured"] = bool(SMTP_HOST and SMTP_USER and SMTP_PASS)
+            settings["_emailConfigured"] = _get_mail()["active"]
             return self._send_json(settings)
 
         if path == "/api/media":
@@ -767,13 +837,12 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/slides":
             return self._send_json(_read_json(SLIDES_FILE, {}))
 
-        if path == "/api/mailconfig":  # admin only, never exposes the password
+        if path == "/api/mailconfig":  # admin only, never exposes any secret
             if not self._is_admin():
                 return self._send_json({"error": "Non autorisé"}, 401)
             cfg = _get_mail()
-            return self._send_json({"host": cfg["host"], "port": cfg["port"], "user": cfg["user"],
-                                    "from": cfg["from"], "hasPass": bool(cfg["pass"]),
-                                    "active": bool(cfg["host"] and cfg["user"] and cfg["pass"])})
+            return self._send_json({"provider": cfg["provider"], "active": cfg["active"],
+                                    "from": cfg["from"]})
 
         if path == "/api/submissions":  # admin-only inbox
             if not self._is_admin():
@@ -877,7 +946,7 @@ class Handler(BaseHTTPRequestHandler):
             "images": images,
         }
         _write_json(SETTINGS_FILE, settings)
-        settings["_emailConfigured"] = bool(SMTP_HOST and SMTP_USER and SMTP_PASS)
+        settings["_emailConfigured"] = _get_mail()["active"]
         return self._send_json({"ok": True, "settings": settings})
 
     def _save_one_image(self):
@@ -1516,8 +1585,8 @@ def main():
     print("  Mot de passe admin : %s" % ("(personnalisé dans le tableau de bord)" if _pw_custom
           else (os.environ.get("ADMIN_PASSWORD") or "kbo-admin")))
     _mail = _get_mail()
-    print("  E-mail (formulaire): %s" % ("configuré → %s" % _mail["host"] if (_mail["host"] and _mail["user"] and _mail["pass"])
-          else "non configuré (à régler dans le tableau de bord → Notifications e-mail)"))
+    print("  E-mail (formulaire): %s" % ("actif via %s" % _mail["provider"] if _mail["active"]
+          else "non configuré (ajoutez BREVO_API_KEY, ou SENDGRID_API_KEY, ou les variables SMTP)"))
     print("  Ctrl+C pour arrêter")
     print("―" * 60)
     try:
