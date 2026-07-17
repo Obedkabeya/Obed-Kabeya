@@ -353,33 +353,20 @@
     }).catch(() => { grid.innerHTML = `<p class="form-msg err">Chargement impossible.</p>`; });
   }
 
-  // ---------- compte : e-mail (SMTP) + mot de passe ----------
+  // ---------- compte : état e-mail (via variables d'environnement) + mot de passe ----------
   function loadMailConfig() {
     fetch("/api/mailconfig")
       .then(r => r.json()).then(c => {
-        if (c.host) $("mailHost").value = c.host;
-        if (c.port) $("mailPort").value = c.port;
-        if (c.user) $("mailUser").value = c.user;
-        $("mailPassHint").textContent = c.hasPass
-          ? "✓ Un mot de passe est déjà enregistré. Laissez vide pour le conserver."
-          : "Aucun mot de passe enregistré pour l'instant.";
-        $("mailMsg").textContent = c.active ? "✓ L'envoi d'e-mail est actif." : "";
-        $("mailMsg").className = c.active ? "form-msg ok" : "form-msg";
+        const el = $("mailStatus"); if (!el) return;
+        if (c.active) {
+          el.textContent = "✓ L'envoi d'e-mail est ACTIF (expéditeur : " + (c.user || "?") + ").";
+          el.style.color = "#1a7a4c";
+        } else {
+          el.textContent = "⚠ L'envoi d'e-mail n'est PAS actif — ajoutez SMTP_USER et SMTP_PASS dans les variables du serveur.";
+          el.style.color = "#b3261e";
+        }
       }).catch(() => {});
   }
-  $("mailSave").addEventListener("click", () => {
-    $("mailMsg").textContent = "Enregistrement…"; $("mailMsg").className = "form-msg";
-    fetch("/api/mailconfig", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ host: $("mailHost").value.trim(), port: $("mailPort").value.trim(), user: $("mailUser").value.trim(), pass: $("mailPass").value }),
-    }).then(r => r.json().then(j => ({ ok: r.ok, j }))).then(({ ok, j }) => {
-      if (!ok) throw new Error(j.error || "Erreur");
-      $("mailPass").value = "";
-      $("mailMsg").textContent = j.active ? "✓ Enregistré — envoi actif." : "Enregistré. Renseignez l'e-mail et le mot de passe pour activer l'envoi.";
-      $("mailMsg").className = "form-msg ok";
-      loadMailConfig(); showToast("Configuration e-mail enregistrée");
-    }).catch(err => { $("mailMsg").textContent = err.message; $("mailMsg").className = "form-msg err"; });
-  });
   $("mailTest").addEventListener("click", () => {
     $("mailMsg").textContent = "Envoi du test…"; $("mailMsg").className = "form-msg";
     fetch("/api/mailtest", { method: "POST" })

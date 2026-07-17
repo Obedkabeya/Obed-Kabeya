@@ -278,19 +278,18 @@
         <div class="tabpanel" data-panel="compte">
           <div class="form-wrap" style="margin-bottom:2rem">
             <h3>Recevoir les messages par e-mail</h3>
-            <p class="muted" style="font-size:.92rem">Pour que les messages du formulaire de contact arrivent <strong>directement dans votre boîte mail</strong>, renseignez ici votre messagerie. Avec Gmail, créez un « mot de passe d'application » (Compte Google → Sécurité → Validation en 2 étapes → Mots de passe des applications) et collez‑le ci‑dessous.</p>
-            <div class="form-grid">
-              <div class="field"><label for="mailHost">Serveur SMTP</label><input type="text" id="mailHost" value="smtp.gmail.com" /></div>
-              <div class="field"><label for="mailPort">Port</label><input type="text" id="mailPort" inputmode="numeric" value="587" /></div>
-              <div class="field field--full"><label for="mailUser">Votre adresse e-mail (expéditeur)</label><input type="email" id="mailUser" placeholder="Obedkabeya1996@gmail.com" /></div>
-              <div class="field field--full"><label for="mailPass">Mot de passe d'application</label><input type="password" id="mailPass" placeholder="•••• •••• •••• ••••" autocomplete="new-password" /><span class="hint" id="mailPassHint"></span></div>
-            </div>
+            <p class="muted" style="font-size:.92rem">Pour des raisons de sécurité, le mot de passe e-mail n'est <strong>plus stocké dans le site</strong> : il se configure via les <strong>variables d'environnement du serveur</strong> (onglet « Variables » sur Railway). Ajoutez‑y :</p>
+            <ul class="muted" style="font-size:.92rem;line-height:1.9">
+              <li><code>SMTP_USER</code> = votre adresse Gmail (ex. Obedkabeya1996@gmail.com)</li>
+              <li><code>SMTP_PASS</code> = votre « mot de passe d'application » Google</li>
+              <li><em>(facultatif)</em> <code>SMTP_HOST</code> = smtp.gmail.com, <code>SMTP_PORT</code> = 587</li>
+            </ul>
+            <p class="hint" id="mailStatus" style="margin:.4rem 0 1rem">Vérification de l'état…</p>
             <div class="form-actions">
-              <button class="btn btn--primary" id="mailSave" type="button">Enregistrer</button>
-              <button class="btn btn--ghost" id="mailTest" type="button">Envoyer un e-mail de test</button>
+              <button class="btn btn--primary" id="mailTest" type="button">Envoyer un e-mail de test</button>
               <span class="form-msg" id="mailMsg"></span>
             </div>
-            <p class="hint">Les messages arriveront à l'adresse définie dans <strong>Réseaux &amp; Contact → Adresse e-mail de réception</strong>. Sans cette configuration, les messages restent enregistrés mais ne sont pas envoyés.</p>
+            <p class="hint">Les messages arriveront à l'adresse définie dans <strong>Réseaux &amp; Contact → Adresse e-mail de réception</strong>. Sans configuration, les messages restent enregistrés mais ne sont pas envoyés.</p>
           </div>
 
           <div class="form-wrap">

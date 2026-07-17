@@ -55,7 +55,6 @@ CONTENT_FILE = os.path.join(DATA_DIR, "content.json")      # remplacements de te
 IMGCONTENT_FILE = os.path.join(DATA_DIR, "imgcontent.json")  # remplacements d'images (édition en ligne)
 SLIDES_FILE = os.path.join(DATA_DIR, "slides.json")          # carrousels d'images par emplacement
 AUTH_FILE = os.path.join(DATA_DIR, "auth.json")            # mot de passe admin (haché)
-MAIL_FILE = os.path.join(DATA_DIR, "mail.json")            # configuration SMTP (privée)
 SESSIONS_FILE = os.path.join(DATA_DIR, "sessions.json")   # sessions d'authentification (rôle admin)
 
 SESSION_COOKIE = "kbo_session"
@@ -169,12 +168,16 @@ def _file_delete(rel_path):
 PORT = int(os.environ.get("PORT", "8000"))
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "kbo-admin")
 
-# SMTP (facultatif) — si configuré, les messages du formulaire sont envoyés par e-mail.
-SMTP_HOST = os.environ.get("SMTP_HOST", "")
-SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
-SMTP_USER = os.environ.get("SMTP_USER", "")
-SMTP_PASS = os.environ.get("SMTP_PASS", "")
-SMTP_FROM = os.environ.get("SMTP_FROM", SMTP_USER)
+# SMTP — configuré UNIQUEMENT par variables d'environnement (jamais dans un fichier,
+# pour ne jamais exposer le mot de passe sur GitHub). Minimum requis : SMTP_USER + SMTP_PASS.
+SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.gmail.com").strip()
+try:
+    SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
+except ValueError:
+    SMTP_PORT = 587
+SMTP_USER = os.environ.get("SMTP_USER", "").strip()
+SMTP_PASS = os.environ.get("SMTP_PASS", "")            # mot de passe d'application Gmail
+SMTP_FROM = os.environ.get("SMTP_FROM", "").strip() or SMTP_USER
 
 # Textes éditables du site (clés utilisées côté page via data-text="clé").
 DEFAULT_TEXTS = {
@@ -260,8 +263,9 @@ CONTENT_TYPES = {
 
 
 # ----------------------------- storage helpers -----------------------------
+# NB : mail.json n'est plus utilisé (SMTP vient des variables d'environnement).
 _DATA_FILES = [ARTICLES_FILE, SUBMISSIONS_FILE, SETTINGS_FILE, MEDIA_FILE, GALLERY_FILE,
-               CONTENT_FILE, IMGCONTENT_FILE, SLIDES_FILE, AUTH_FILE, MAIL_FILE, SESSIONS_FILE]
+               CONTENT_FILE, IMGCONTENT_FILE, SLIDES_FILE, AUTH_FILE, SESSIONS_FILE]
 _LIST_KEYS = {"articles", "submissions", "media", "gallery"}
 
 
@@ -518,16 +522,14 @@ def _destroy_session(token):
 
 # ----------------------------- e-mail (SMTP) -----------------------------
 def _get_mail():
-    """SMTP config from data/mail.json, falling back to environment variables."""
-    m = _read_json(MAIL_FILE, {})
-    if not isinstance(m, dict):
-        m = {}
+    """Configuration SMTP lue UNIQUEMENT dans les variables d'environnement.
+    Aucun secret n'est stocké dans un fichier (donc rien à fuiter sur GitHub)."""
     return {
-        "host": m.get("host") or SMTP_HOST,
-        "port": int(m.get("port") or SMTP_PORT or 587),
-        "user": m.get("user") or SMTP_USER,
-        "pass": m.get("pass") or SMTP_PASS,
-        "from": m.get("from") or m.get("user") or SMTP_FROM or SMTP_USER,
+        "host": SMTP_HOST or "smtp.gmail.com",
+        "port": SMTP_PORT or 587,
+        "user": SMTP_USER,
+        "pass": SMTP_PASS,
+        "from": SMTP_FROM or SMTP_USER,
     }
 
 
@@ -760,9 +762,6 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/admin/password":
             return self._change_password()
 
-        if path == "/api/mailconfig":
-            return self._save_mailconfig()
-
         if path == "/api/mailtest":
             return self._send_test_email()
 
@@ -952,24 +951,6 @@ class Handler(BaseHTTPRequestHandler):
             return self._send_json({"error": "Le nouveau mot de passe doit faire au moins 4 caractères."}, 400)
         _set_password(new)
         return self._send_json({"ok": True})
-
-    def _save_mailconfig(self):
-        if not self._is_admin():
-            return self._send_json({"error": "Non autorisé"}, 401)
-        data = self._read_body()
-        current = _read_json(MAIL_FILE, {})
-        if not isinstance(current, dict):
-            current = {}
-        cfg = {
-            "host": _clean(data.get("host"), 120) or "smtp.gmail.com",
-            "port": int(str(data.get("port") or "587").strip() or 587),
-            "user": _clean(data.get("user"), 200),
-            "from": _clean(data.get("from"), 200) or _clean(data.get("user"), 200),
-            # keep the existing password if the field is left blank
-            "pass": (str(data.get("pass")).strip() if data.get("pass") else current.get("pass", "")),
-        }
-        _write_json(MAIL_FILE, cfg)
-        return self._send_json({"ok": True, "active": bool(cfg["host"] and cfg["user"] and cfg["pass"])})
 
     def _send_test_email(self):
         if not self._is_admin():

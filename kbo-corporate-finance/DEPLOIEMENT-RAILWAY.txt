@@ -43,11 +43,32 @@ CE QUI A ÉTÉ AJOUTÉ POUR RAILWAY
 
 
 ------------------------------------------------------------
+E-MAIL (formulaire de contact / candidatures)
+------------------------------------------------------------
+  Le mot de passe e-mail n'est PLUS stocké dans un fichier (sécurité).
+  Il se configure UNIQUEMENT via les Variables Railway. Ajoutez :
+
+       SMTP_USER  =  votre adresse Gmail (ex. Obedkabeya1996@gmail.com)
+       SMTP_PASS  =  votre « mot de passe d'application » Google
+
+  (facultatif, valeurs par défaut déjà bonnes pour Gmail)
+       SMTP_HOST  =  smtp.gmail.com
+       SMTP_PORT  =  587
+
+  ⚠️ IMPORTANT — SÉCURITÉ :
+     L'ancien mot de passe d'application a fuité sur GitHub. Il faut le
+     RÉVOQUER puis en créer un NOUVEAU :
+       Compte Google → Sécurité → Validation en 2 étapes →
+       Mots de passe des applications → supprimer l'ancien, en créer un neuf.
+     Mettez ce NOUVEAU mot de passe dans la variable SMTP_PASS de Railway.
+
+  Pour vérifier : Tableau de bord → onglet « Compte & e-mail » →
+  « Envoyer un e-mail de test ».
+
+------------------------------------------------------------
 IMPORTANT
 ------------------------------------------------------------
   - Le PORT est géré automatiquement par Railway (ne rien changer).
-  - Vos e-mails (formulaire de contact) : reconfigurez le SMTP dans le
-    tableau de bord une fois en ligne (onglet "Compte & e-mail"),
-    ou définissez les variables SMTP_* dans Railway.
+  - Le fichier data/mail.json n'existe plus et est ignoré par git (.gitignore).
   - Gardez une COPIE de ce dossier en sauvegarde.
 ====================================================================
