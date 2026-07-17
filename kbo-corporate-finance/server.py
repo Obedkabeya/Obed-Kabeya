@@ -34,6 +34,7 @@ import json
 import os
 import re
 import smtplib
+import socket
 import ssl
 import uuid
 from email.message import EmailMessage
@@ -527,18 +528,54 @@ def _get_mail():
     Aucun secret n'est stocké dans un fichier (donc rien à fuiter sur GitHub)."""
     return {
         "host": SMTP_HOST or "smtp.gmail.com",
-        "port": SMTP_PORT or 587,
+        "port": SMTP_PORT or 465,
         "user": SMTP_USER,
         "pass": SMTP_PASS,
         "from": SMTP_FROM or SMTP_USER,
     }
 
 
+def _resolve_ipv4(host):
+    """Renvoie une adresse IPv4 du serveur, ou None si introuvable.
+    Railway n'ayant pas d'IPv6, forcer l'IPv4 évite « Network is unreachable »."""
+    try:
+        infos = socket.getaddrinfo(host, None, socket.AF_INET, socket.SOCK_STREAM)
+        if infos:
+            return infos[0][4][0]
+    except Exception:
+        pass
+    return None
+
+
+class _SMTP_SSL_IPv4(smtplib.SMTP_SSL):
+    """SMTP_SSL qui se connecte en IPv4 tout en vérifiant le certificat sur le
+    vrai nom d'hôte (SNI = self._host)."""
+    def _get_socket(self, host, port, timeout):
+        ip = _resolve_ipv4(host) or host
+        raw = socket.create_connection((ip, port), timeout, getattr(self, "source_address", None))
+        return self.context.wrap_socket(raw, server_hostname=self._host)
+
+
+class _SMTP_IPv4(smtplib.SMTP):
+    """SMTP (STARTTLS) qui se connecte en IPv4."""
+    def _get_socket(self, host, port, timeout):
+        ip = _resolve_ipv4(host) or host
+        return socket.create_connection((ip, port), timeout, getattr(self, "source_address", None))
+
+
 def _send_email(to_addr, subject, body, reply_to=None):
-    """Send an e-mail via SMTP if configured. Returns (sent: bool, detail: str)."""
+    """Envoie un e-mail. Renvoie (envoyé: bool, détail: str).
+    - Port 465  -> SSL implicite (smtplib.SMTP_SSL), JAMAIS de starttls.
+    - Port 587  -> STARTTLS.
+    Connexion forcée en IPv4 (indispensable sur Railway)."""
     cfg = _get_mail()
     if not (cfg["host"] and cfg["user"] and cfg["pass"]):
         return False, "SMTP non configuré"
+    host = cfg["host"]
+    try:
+        port = int(cfg["port"] or 465)
+    except (TypeError, ValueError):
+        port = 465
     try:
         msg = EmailMessage()
         msg["Subject"] = subject
@@ -548,22 +585,28 @@ def _send_email(to_addr, subject, body, reply_to=None):
             msg["Reply-To"] = reply_to
         msg.set_content(body)
         context = ssl.create_default_context()
-        port = int(cfg["port"] or 465)
+
         if port == 465:
-            # SSL implicite (recommandé sur Railway) — connexion chiffrée dès le départ.
-            with smtplib.SMTP_SSL(cfg["host"], port, context=context, timeout=25) as s:
-                s.login(cfg["user"], cfg["pass"])
-                s.send_message(msg)
+            # SSL dès le départ (recommandé sur Railway). Aucun starttls.
+            server = _SMTP_SSL_IPv4(host=host, port=port, context=context, timeout=30)
         else:
-            # STARTTLS (port 587 et autres) — le serveur passe en chiffré après connexion.
-            with smtplib.SMTP(cfg["host"], port, timeout=25) as s:
-                s.ehlo()
-                s.starttls(context=context)
-                s.login(cfg["user"], cfg["pass"])
-                s.send_message(msg)
-        return True, "envoyé"
+            # STARTTLS pour 587 (ou autres ports en clair).
+            server = _SMTP_IPv4(host=host, port=port, timeout=30)
+            server.ehlo()
+            server.starttls(context=context)
+            server.ehlo()
+
+        try:
+            server.login(cfg["user"], cfg["pass"])
+            server.send_message(msg)
+        finally:
+            try:
+                server.quit()
+            except Exception:
+                pass
+        return True, "envoyé (port %d)" % port
     except Exception as exc:  # noqa: BLE001 - report but never crash the request
-        return False, "erreur SMTP: %s" % exc
+        return False, "erreur SMTP (port %d): %s" % (port, exc)
 
 
 def _save_upload(data_url):
