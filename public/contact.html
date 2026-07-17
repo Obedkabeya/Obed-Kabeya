@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Contact · Obed Kabeya — KBO Corporate Finance</title>
+  <meta name="description" content="Contactez Obed Kabeya pour une formation, une structuration comptable, un conseil en investissement ou toute autre demande." />
+  <link rel="icon" href="images/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body data-page="contact">
+  <div id="site-header"></div>
+
+  <section class="page-intro">
+    <div class="container narrow">
+      <p class="eyebrow reveal">Contact</p>
+      <h1 class="reveal" data-text="contactTitle">Entrons en relation.</h1>
+      <p class="lead reveal" data-text="contactIntro">Une question, un projet, une envie de collaborer&nbsp;? Écrivez-moi directement — je réponds personnellement à chaque message.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="container">
+      <div class="feature">
+        <div class="reveal">
+          <p class="eyebrow">Coordonnées</p>
+          <h2>Plusieurs façons de me joindre</h2>
+          <hr class="divider" />
+          <div class="stack" style="margin-top:1.4rem">
+            <p><strong>E-mail</strong><br><a href="#" data-email-link data-email-text>e-mail</a></p>
+            <p><strong>Services</strong><br>
+              <a href="formation.html">Formation en finance des marchés</a><br>
+              <a href="comptabilite.html">Comptabilité des entreprises naissantes</a><br>
+              <a href="conseil.html">Conseil en investissement</a>
+            </p>
+            <p><strong>Réseaux</strong><br>
+              <a href="#" data-social="linkedin" target="_blank" rel="noopener" style="display:none">LinkedIn</a>
+              <a href="#" data-social="x" target="_blank" rel="noopener" style="display:none">X</a>
+              <a href="#" data-social="youtube" target="_blank" rel="noopener" style="display:none">YouTube</a>
+              <a href="#" data-social="facebook" target="_blank" rel="noopener" style="display:none">Facebook</a>
+              <a href="#" data-social="instagram" target="_blank" rel="noopener" style="display:none">Instagram</a>
+            </p>
+          </div>
+        </div>
+
+        <div class="reveal">
+          <div class="form-wrap">
+            <h3>Écrivez-moi</h3>
+            <form id="contactForm" data-endpoint="/api/contact/general" data-kind="Contact — Général">
+              <div class="form-grid">
+                <div class="field"><label for="g_name">Nom complet <span class="req">*</span></label><input id="g_name" name="nom" type="text" required /></div>
+                <div class="field"><label for="g_email">E-mail <span class="req">*</span></label><input id="g_email" name="email" type="email" required /></div>
+                <div class="field field--full">
+                  <label for="g_subject">Sujet</label>
+                  <select id="g_subject" name="sujet">
+                    <option value="" disabled selected>Sélectionnez…</option>
+                    <option>Formation en finance des marchés</option>
+                    <option>Comptabilité d'entreprise</option>
+                    <option>Conseil en investissement</option>
+                    <option>Collaboration / média</option>
+                    <option>Autre</option>
+                  </select>
+                </div>
+                <div class="field field--full">
+                  <label for="g_msg">Votre message <span class="req">*</span></label>
+                  <textarea id="g_msg" name="message" required placeholder="Comment puis-je vous aider ?"></textarea>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button class="btn btn--primary" type="submit">Envoyer le message <span class="arrow">→</span></button>
+                <span class="form-msg" id="contactMsg"></span>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="site-footer"></div>
+  <script src="js/components.js"></script>
+  <script src="js/forms.js"></script>
+</body>
+</html>

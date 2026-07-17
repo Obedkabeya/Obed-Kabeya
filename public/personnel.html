@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Personnel — Biographie & Blog · Obed Kabeya</title>
+  <meta name="description" content="La biographie d'Obed Kabeya et son blog : histoires, réflexions et vidéos autour de la finance des marchés et de l'écriture." />
+  <link rel="icon" href="images/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body data-page="personnel">
+  <div id="site-header"></div>
+
+  <!-- INTRO -->
+  <section class="page-intro">
+    <div class="container narrow">
+      <p class="eyebrow reveal">Personnel</p>
+      <h1 class="reveal">Un parcours, des mots, une passion.</h1>
+      <p class="lead reveal">Du latin-philosophie aux salles de marché, ma trajectoire mêle rigueur intellectuelle, foi et discipline financière. Voici mon histoire — et les réflexions que je partage au fil du temps.</p>
+    </div>
+  </section>
+
+  <!-- BIOGRAPHY -->
+  <section class="section">
+    <div class="container">
+      <div class="feature">
+        <div class="reveal">
+          <p class="eyebrow">Biographie</p>
+          <h2>De la philosophie aux marchés</h2>
+          <hr class="divider" />
+          <p>Mon parcours commence dans les humanités : un baccalauréat en <strong>latin-philosophie</strong>, où j'apprends à penser avec méthode, à peser les idées et à écrire. Cette formation reste, aujourd'hui encore, la matrice de ma façon de raisonner.</p>
+          <p>Je poursuis avec une <strong>licence en exégèse et droit biblique</strong>, une discipline exigeante qui affine mon sens de l'analyse, de l'interprétation des textes et de la rigueur argumentative.</p>
+        </div>
+        <div class="feature__media reveal" data-slot="bio-1">
+          <img src="images/journey.svg" alt="Photo du parcours d'Obed Kabeya" />
+        </div>
+      </div>
+
+      <div class="feature feature--rev">
+        <div class="reveal">
+          <p>Attiré par le monde de l'entreprise et de la finance, j'obtiens une <strong>licence en gestion, banque et finance d'entreprise</strong> à l'Université Catholique de l'Afrique de l'Ouest, au Bénin. J'y découvre la mécanique du crédit, du financement et de la valeur — les fondations de mon métier.</p>
+          <p>Je me spécialise ensuite par une <strong>certification en finance des marchés à la CEP Business School</strong>, qui me donne les outils techniques du trading et de la gestion du risque.</p>
+        </div>
+        <div class="feature__media reveal" data-slot="bio-2">
+          <img src="images/markets.svg" alt="Photo — marchés financiers" />
+        </div>
+      </div>
+
+      <div class="feature">
+        <div class="reveal">
+          <p>Depuis <strong>dix ans, je suis trader</strong> et j'interviens sur différents marchés. Cette expérience quotidienne du risque m'a appris ce qu'aucun manuel n'enseigne vraiment : la patience, la discipline et l'humilité face à l'incertitude.</p>
+          <p>En marge des écrans, je cultive une passion profonde pour <strong>l'écriture et la lecture</strong>. J'écris pour comprendre, pour transmettre et pour donner du sens — c'est le fil qui relie l'homme des humanités au banquier de marché.</p>
+        </div>
+        <div class="feature__media reveal" data-slot="bio-3">
+          <img src="images/writing.svg" alt="Photo — écriture et réflexion" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BLOG -->
+  <section class="section section--soft" id="blog">
+    <div class="container">
+      <div class="reveal" style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:1rem;margin-bottom:2.4rem;">
+        <div>
+          <p class="eyebrow">Le blog</p>
+          <h2>Histoires, réflexions & vidéos</h2>
+          <hr class="divider" />
+          <p class="muted" style="max-width:560px;">Un espace où je publie régulièrement mes récits de marché, mes lectures et mes réflexions stratégiques.</p>
+        </div>
+      </div>
+
+      <div class="carousel blog-carousel" id="blogCarousel">
+        <div id="blogGrid" class="carousel__track blog-track" aria-live="polite">
+          <p class="empty-state">Chargement des articles…</p>
+        </div>
+        <div class="carousel__nav">
+          <button class="carousel__btn" id="blogPrev" type="button" aria-label="Articles précédents">←</button>
+          <button class="carousel__btn" id="blogNext" type="button" aria-label="Articles suivants">→</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GALERIE (aperçu) -->
+  <section class="section" id="galerie" hidden>
+    <div class="container">
+      <div class="reveal" style="display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:1rem;margin-bottom:2.2rem">
+        <div>
+          <p class="eyebrow">En images</p>
+          <h2>Galerie</h2>
+          <hr class="divider" />
+          <p class="muted" style="max-width:560px;">Quelques moments — événements, rencontres et instants marquants.</p>
+        </div>
+        <a class="btn btn--ghost" href="galerie.html">Voir toute la galerie <span class="arrow">→</span></a>
+      </div>
+      <div id="galleryGrid" class="gallery-grid" data-mode="teaser" data-limit="6"></div>
+    </div>
+  </section>
+
+  <div id="site-footer"></div>
+  <script src="js/components.js"></script>
+  <script src="js/blog.js"></script>
+  <script src="js/gallery.js"></script>
+</body>
+</html>

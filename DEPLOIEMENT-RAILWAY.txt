@@ -1,0 +1,74 @@
+====================================================================
+  METTRE LE SITE EN LIGNE SUR RAILWAY (avec base PostgreSQL)
+====================================================================
+
+Le code bascule TOUT SEUL :
+  - Sur votre Mac (sans base de données)  -> il utilise les fichiers du
+    dossier "data" (comme avant).
+  - Sur Railway (avec la variable DATABASE_URL) -> il utilise votre base
+    PostgreSQL. Les textes, images, carrousels, réglages et messages sont
+    alors enregistrés de façon PERMANENTE (ils survivent aux redémarrages).
+
+Vous n'avez RIEN à coder. Il suffit de déployer ces fichiers.
+
+
+------------------------------------------------------------
+CE QUI A ÉTÉ AJOUTÉ POUR RAILWAY
+------------------------------------------------------------
+  - server.py            : gère automatiquement PostgreSQL si DATABASE_URL existe
+  - requirements.txt     : indique à Railway d'installer la librairie PostgreSQL
+  - Procfile             : indique à Railway comment démarrer le site
+
+
+------------------------------------------------------------
+ÉTAPES SUR RAILWAY (résumé)
+------------------------------------------------------------
+  1. Dans votre projet Railway, assurez-vous d'avoir :
+       - votre service "site" (ce code)
+       - un service "PostgreSQL" (la base que vous avez créée)
+
+  2. Railway relie automatiquement la base au site via la variable
+     DATABASE_URL. (Si ce n'est pas le cas : dans les Variables du service
+     du site, ajoutez  DATABASE_URL  =  ${{Postgres.DATABASE_URL}} )
+
+  3. Déployez ce dossier (via GitHub ou le CLI Railway).
+     Au premier démarrage, le site copie automatiquement vos données et vos
+     images actuelles (dossiers data/ et uploads/) DANS la base PostgreSQL.
+     -> Rien n'est perdu.
+
+  4. Ouvrez l'URL fournie par Railway : votre site est en ligne, permanent.
+
+  Astuce : dans les journaux (logs) Railway, au démarrage vous verrez
+           "Stockage : PostgreSQL (permanent)"  =  tout est branché correctement.
+
+
+------------------------------------------------------------
+E-MAIL (formulaire de contact / candidatures)
+------------------------------------------------------------
+  Le mot de passe e-mail n'est PLUS stocké dans un fichier (sécurité).
+  Il se configure UNIQUEMENT via les Variables Railway. Ajoutez :
+
+       SMTP_USER  =  votre adresse Gmail (ex. Obedkabeya1996@gmail.com)
+       SMTP_PASS  =  votre « mot de passe d'application » Google
+
+  (facultatif, valeurs par défaut déjà bonnes pour Gmail)
+       SMTP_HOST  =  smtp.gmail.com
+       SMTP_PORT  =  587
+
+  ⚠️ IMPORTANT — SÉCURITÉ :
+     L'ancien mot de passe d'application a fuité sur GitHub. Il faut le
+     RÉVOQUER puis en créer un NOUVEAU :
+       Compte Google → Sécurité → Validation en 2 étapes →
+       Mots de passe des applications → supprimer l'ancien, en créer un neuf.
+     Mettez ce NOUVEAU mot de passe dans la variable SMTP_PASS de Railway.
+
+  Pour vérifier : Tableau de bord → onglet « Compte & e-mail » →
+  « Envoyer un e-mail de test ».
+
+------------------------------------------------------------
+IMPORTANT
+------------------------------------------------------------
+  - Le PORT est géré automatiquement par Railway (ne rien changer).
+  - Le fichier data/mail.json n'existe plus et est ignoré par git (.gitignore).
+  - Gardez une COPIE de ce dossier en sauvegarde.
+====================================================================
