@@ -172,9 +172,10 @@ ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "kbo-admin")
 # pour ne jamais exposer le mot de passe sur GitHub). Minimum requis : SMTP_USER + SMTP_PASS.
 SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.gmail.com").strip()
 try:
-    SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
+    # Défaut 465 (SSL) : plus fiable sur Railway, qui bloque souvent le 587 (STARTTLS).
+    SMTP_PORT = int(os.environ.get("SMTP_PORT", "465"))
 except ValueError:
-    SMTP_PORT = 587
+    SMTP_PORT = 465
 SMTP_USER = os.environ.get("SMTP_USER", "").strip()
 SMTP_PASS = os.environ.get("SMTP_PASS", "")            # mot de passe d'application Gmail
 SMTP_FROM = os.environ.get("SMTP_FROM", "").strip() or SMTP_USER
@@ -547,10 +548,19 @@ def _send_email(to_addr, subject, body, reply_to=None):
             msg["Reply-To"] = reply_to
         msg.set_content(body)
         context = ssl.create_default_context()
-        with smtplib.SMTP(cfg["host"], cfg["port"], timeout=20) as s:
-            s.starttls(context=context)
-            s.login(cfg["user"], cfg["pass"])
-            s.send_message(msg)
+        port = int(cfg["port"] or 465)
+        if port == 465:
+            # SSL implicite (recommandé sur Railway) — connexion chiffrée dès le départ.
+            with smtplib.SMTP_SSL(cfg["host"], port, context=context, timeout=25) as s:
+                s.login(cfg["user"], cfg["pass"])
+                s.send_message(msg)
+        else:
+            # STARTTLS (port 587 et autres) — le serveur passe en chiffré après connexion.
+            with smtplib.SMTP(cfg["host"], port, timeout=25) as s:
+                s.ehlo()
+                s.starttls(context=context)
+                s.login(cfg["user"], cfg["pass"])
+                s.send_message(msg)
         return True, "envoyé"
     except Exception as exc:  # noqa: BLE001 - report but never crash the request
         return False, "erreur SMTP: %s" % exc
