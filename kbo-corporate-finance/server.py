@@ -213,6 +213,7 @@ DEFAULT_TEXTS = {
 # Réglages par défaut du site (modifiables via le tableau de bord /admin.html).
 DEFAULT_SETTINGS = {
     "email": "Obedkabeya1996@gmail.com",
+    "whatsapp": "",   # numéro international sans « + » (ex. 22990112233) — widget WhatsApp
     "presentation": DEFAULT_TEXTS["presentation"],
     "photo": "images/portrait.svg",
     "social": {
@@ -363,6 +364,7 @@ def _get_settings():
 
     merged = {
         "email": data.get("email") or DEFAULT_SETTINGS["email"],
+        "whatsapp": (data.get("whatsapp") or DEFAULT_SETTINGS.get("whatsapp", "")),
         "presentation": texts["presentation"],
         "photo": data.get("photo") or DEFAULT_SETTINGS["photo"],
         "social": {},
@@ -954,8 +956,10 @@ class Handler(BaseHTTPRequestHandler):
         for key in DEFAULT_SETTINGS["images"]:
             images[key] = _clean(images_in.get(key), 400) or current["images"].get(key, DEFAULT_SETTINGS["images"][key])
 
+        wa = re.sub(r"[^\d]", "", (data.get("whatsapp") or current.get("whatsapp") or ""))[:20]
         settings = {
             "email": email,
+            "whatsapp": wa,
             "presentation": texts["presentation"],
             "photo": _clean(data.get("photo"), 400) or current["photo"],
             "social": social,

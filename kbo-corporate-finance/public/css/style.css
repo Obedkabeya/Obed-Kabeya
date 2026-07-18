@@ -4,32 +4,40 @@
    ========================================================= */
 
 :root {
-  /* Colors */
-  --navy-deep: #06152e;
-  --navy: #0a1f44;
-  --blue: #1f4f9c;
-  --blue-bright: #2a63c4;
-  --black: #0b0d12;
-  --ink: #14181f;
-  --gray: #5b6472;
-  --gray-light: #8b93a1;
-  --line: #e6e9ef;
-  --paper: #ffffff;
-  --paper-soft: #f6f8fc;
-  --paper-tint: #eef2f9;
+  /* Colors — échantillonnées au pixel près depuis le logo (logo2.jpg) :
+     KBO navy = #1E3B8B · « Corporate Finance » = noir · fond = papier blanc cassé.
+     L'or antique (#B8934A) est la couleur des documents internes du cabinet :
+     accent de signature, un seul élément fort par écran — jamais en aplat. */
+  --navy: #1E3B8B;            /* Encre — wordmark KBO, titres, structure */
+  --navy-deep: #16255C;       /* Encre profonde — fonds sombres, hover */
+  --blue: #1E3B8B;            /* alias : bleu de marque = navy du logo */
+  --blue-bright: #2A63C4;     /* état survol / lien actif */
+  --black: #14161C;           /* Graphite — texte courant, UI */
+  --ink: #14161C;
+  --gray: #5B6472;            /* Ardoise — texte secondaire, légendes */
+  --gray-light: #8B93A1;
+  --line: #E6E8EE;            /* filets, bordures */
+  --paper: #FBFBFA;           /* Papier — blanc cassé net (pas crème) */
+  --paper-soft: #F4F5F7;
+  --paper-tint: #EDEFF4;
+  --gold: #B8934A;            /* Or antique — accent de signature, usage rare */
+  --gold-soft: #EFE4CC;
 
-  /* Type — Archivo: grotesque robuste et corporate pour les titres. */
-  --display: "Archivo", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  /* Type — Fraunces (serif patrimoniale, titres) prolonge le « KBO » du logo ;
+     Inter (grotesque) prolonge le « Corporate Finance » ; IBM Plex Mono pour
+     les chiffres financiers (rigueur : les nombres traités comme des données). */
+  --display: "Fraunces", Georgia, "Times New Roman", serif;
   --serif: var(--display); /* alias historique */
   --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* Rhythm */
   --maxw: 1140px;
   --maxw-narrow: 760px;
   --gutter: clamp(20px, 5vw, 48px);
   --radius: 4px;
-  --shadow-sm: 0 1px 3px rgba(10, 31, 68, 0.06), 0 1px 2px rgba(10, 31, 68, 0.04);
-  --shadow-md: 0 10px 40px -12px rgba(6, 21, 46, 0.18);
+  --shadow-sm: 0 1px 3px rgba(22, 37, 92, 0.06), 0 1px 2px rgba(22, 37, 92, 0.04);
+  --shadow-md: 0 10px 40px -12px rgba(22, 37, 92, 0.18);
   --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
 }
 
@@ -50,11 +58,19 @@ body {
 img { max-width: 100%; display: block; }
 a { color: var(--blue); text-decoration: none; transition: color 0.2s var(--ease); }
 a:hover { color: var(--blue-bright); }
-h1, h2, h3, h4 { font-family: var(--display); font-weight: 700; color: var(--navy); line-height: 1.1; margin: 0 0 0.5em; letter-spacing: -0.018em; }
-h1 { font-size: clamp(2.3rem, 5.6vw, 3.7rem); font-weight: 800; }
-h2 { font-size: clamp(1.75rem, 3.6vw, 2.5rem); }
-h3 { font-size: clamp(1.25rem, 2.3vw, 1.55rem); }
+h1, h2, h3, h4 { font-family: var(--display); font-weight: 700; color: var(--navy); line-height: 1.08; margin: 0 0 0.5em; letter-spacing: -0.012em; font-optical-sizing: auto; }
+h1 { font-size: clamp(2.3rem, 5.6vw, 3.7rem); font-weight: 900; }
+h2 { font-size: clamp(1.75rem, 3.6vw, 2.5rem); font-weight: 800; }
+h3 { font-size: clamp(1.25rem, 2.3vw, 1.55rem); font-weight: 700; }
 p { margin: 0 0 1.1em; }
+
+/* Chiffres financiers : police à part + chiffres tabulaires = signal de rigueur. */
+.num, .stat__value, .price__amount, .diag-score__value, .diag-mini__score-value {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  letter-spacing: -0.01em;
+}
 
 /* ---------- Layout helpers ---------- */
 .container { width: 100%; max-width: var(--maxw); margin: 0 auto; padding-inline: var(--gutter); }
@@ -115,9 +131,15 @@ p { margin: 0 0 1.1em; }
   display: flex; align-items: center; justify-content: space-between;
   height: 72px;
 }
-.brand { display: inline-flex; align-items: baseline; gap: 0.4em; font-family: var(--display); line-height: 1; }
-.brand__mark { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.01em; color: var(--black); }
-.brand__sub { font-family: var(--sans); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--blue); }
+/* Wordmark : reproduit le logo — « KBO » serif navy, filet vertical, « corporate
+   finance » sans-serif graphite. Le filet vertical est la signature de la marque. */
+.brand { display: inline-flex; align-items: center; gap: 0.6em; font-family: var(--display); line-height: 1; }
+.brand__mark { font-family: var(--display); font-size: 1.5rem; font-weight: 900; letter-spacing: -0.01em; color: var(--navy); }
+.brand__sub {
+  font-family: var(--sans); font-size: 0.66rem; font-weight: 700; line-height: 1.15;
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--black);
+  padding-left: 0.6em; border-left: 2px solid var(--navy);
+}
 
 .nav__links { display: flex; align-items: center; gap: 2rem; list-style: none; margin: 0; padding: 0; }
 .nav__links a {
@@ -609,3 +631,199 @@ body.is-admin .admin-only { display: revert !important; }
 .tag-row { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 1.4rem; }
 .muted { color: var(--gray); }
 .badge-serious { display:inline-flex; align-items:center; gap:0.5em; font-size:0.8rem; font-weight:600; color:var(--blue); background:var(--paper-tint); padding:0.4em 0.9em; border-radius:100px; }
+
+/* =========================================================
+   BRIEF KBO — SYSTÈME DE MARQUE ÉTENDU
+   La ligne verticale du logo devient le fil conducteur du site.
+   ========================================================= */
+
+/* ---- Ligne verticale signature ---- */
+/* Séparateur autonome (entre piliers, transitions de section). Se dessine une
+   seule fois à l'arrivée. Respecte prefers-reduced-motion. */
+.vrule {
+  width: 2px; align-self: stretch; min-height: 40px;
+  background: linear-gradient(var(--navy), var(--navy));
+  background-size: 100% 100%; background-repeat: no-repeat;
+}
+.vrule--gold { background-image: linear-gradient(var(--gold), var(--gold)); }
+.signature-line {
+  position: relative; width: 2px; height: clamp(48px, 8vw, 96px);
+  margin: 0 auto; background: var(--navy); transform-origin: top center;
+}
+.signature-line::after {
+  content: ""; position: absolute; left: 50%; bottom: -5px; width: 9px; height: 9px;
+  transform: translateX(-50%) rotate(45deg); background: var(--gold);
+}
+.reveal-line { transform: scaleY(0); transition: transform 0.9s var(--ease); transform-origin: top center; }
+.reveal-line.is-in { transform: scaleY(1); }
+@media (prefers-reduced-motion: reduce) {
+  .reveal-line { transition: none; transform: scaleY(1); }
+}
+.section-mark { display: flex; justify-content: center; padding-block: clamp(24px, 5vw, 56px); }
+
+/* ---- Trois piliers séparés par la ligne signature ---- */
+.pillars {
+  display: grid; grid-template-columns: 1fr 2px 1fr 2px 1fr;
+  gap: clamp(1.4rem, 3vw, 3rem); align-items: stretch;
+}
+.pillars__rule { background: var(--line); width: 2px; }
+.pillar { display: flex; flex-direction: column; }
+.pillar__num { font-family: var(--mono); font-size: 0.8rem; color: var(--gold); font-weight: 600; letter-spacing: 0.1em; margin-bottom: 0.8rem; }
+.pillar h3 { margin-bottom: 0.5rem; }
+.pillar__tag { color: var(--gray); flex: 1; }
+.pillar__cta {
+  margin-top: 1.4rem; font-weight: 600; font-size: 0.95rem; color: var(--navy);
+  display: inline-flex; align-items: center; gap: 0.5em; align-self: flex-start;
+}
+.pillar__cta .arrow { transition: transform 0.22s var(--ease); }
+.pillar:hover .pillar__cta .arrow { transform: translateX(4px); }
+.pillar__cta::after { content: none; }
+@media (max-width: 860px) {
+  .pillars { grid-template-columns: 1fr; gap: 0; }
+  .pillars__rule { width: auto; height: 1px; background: var(--line); margin-block: 1.6rem; }
+  .pillar__cta { margin-top: 1rem; }
+}
+
+/* =========================================================
+   DIAGNOSTIC DE BANCABILITÉ — outil signature (mini + complet)
+   ========================================================= */
+
+/* ---- Mini-diagnostic dans le hero ---- */
+.diag-mini {
+  background: #fff; border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: var(--shadow-md); padding: clamp(1.3rem, 3vw, 1.9rem);
+  position: relative; overflow: hidden;
+}
+.diag-mini::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--navy); }
+.diag-mini__head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 0.3rem; }
+.diag-mini__title { font-family: var(--sans); font-weight: 700; font-size: 0.95rem; color: var(--navy); letter-spacing: 0.01em; }
+.diag-mini__hint { font-size: 0.78rem; color: var(--gray); margin: 0 0 1.2rem; }
+.diag-field { margin-bottom: 1.1rem; }
+.diag-field__label { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.85rem; font-weight: 600; color: var(--ink); margin-bottom: 0.5rem; }
+.diag-field__val { font-family: var(--mono); font-size: 0.82rem; color: var(--navy); font-variant-numeric: tabular-nums; }
+input[type="range"].diag-range {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 4px; border-radius: 4px;
+  background: var(--paper-tint); outline: none; margin: 0;
+}
+input[type="range"].diag-range::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--navy); cursor: pointer; border: 3px solid #fff; box-shadow: 0 1px 4px rgba(22,37,92,.35);
+}
+input[type="range"].diag-range::-moz-range-thumb {
+  width: 20px; height: 20px; border-radius: 50%; background: var(--navy); cursor: pointer; border: 3px solid #fff;
+}
+input[type="range"].diag-range:focus-visible { outline: 2px solid var(--gold); outline-offset: 4px; }
+.diag-seg { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.diag-seg button {
+  font-family: var(--sans); font-size: 0.82rem; font-weight: 500; cursor: pointer;
+  padding: 0.45em 0.9em; border-radius: 100px; border: 1.5px solid var(--line);
+  background: #fff; color: var(--ink); transition: all 0.18s var(--ease);
+}
+.diag-seg button[aria-pressed="true"] { border-color: var(--navy); background: var(--navy); color: #fff; }
+.diag-mini__score {
+  margin-top: 1.3rem; padding-top: 1.2rem; border-top: 1px solid var(--line);
+  display: flex; align-items: center; gap: 1rem;
+}
+.diag-mini__gauge { position: relative; width: 60px; height: 60px; flex: none; }
+.diag-mini__score-value { font-size: 1.5rem; font-weight: 600; color: var(--navy); line-height: 1; }
+.diag-mini__score-label { font-size: 0.82rem; color: var(--gray); }
+.diag-mini__score-label strong { color: var(--ink); }
+
+/* ---- Diagnostic complet (page Accompagnement) ---- */
+.diag { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: clamp(1.5rem, 4vw, 3rem); align-items: start; }
+.diag__panel { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: clamp(1.4rem, 3vw, 2.2rem); box-shadow: var(--shadow-sm); }
+.diag__q { margin-bottom: 1.6rem; }
+.diag__q:last-child { margin-bottom: 0; }
+.diag__q > label { display: block; font-weight: 600; color: var(--ink); margin-bottom: 0.7rem; }
+.diag__q .diag-field__val { display: inline-block; margin-left: 0.4rem; }
+.diag-result {
+  position: sticky; top: 96px; background: var(--navy-deep); color: #eaf0fb; border-radius: 12px;
+  padding: clamp(1.5rem, 3vw, 2.2rem); overflow: hidden;
+}
+.diag-result h3 { color: #fff; }
+.diag-score { display: flex; align-items: center; gap: 1.2rem; margin-bottom: 1.4rem; }
+.diag-score__ring { position: relative; width: 96px; height: 96px; flex: none; }
+.diag-score__value { position: absolute; inset: 0; display: grid; place-items: center; font-size: 1.9rem; font-weight: 600; color: #fff; }
+.diag-score__band { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+.diag-score__band--low { color: #f0a58a; }
+.diag-score__band--mid { color: var(--gold); }
+.diag-score__band--high { color: #7fd6a8; }
+.diag-reco { font-size: 0.98rem; line-height: 1.6; color: #d7e0f2; }
+.diag-reco strong { color: #fff; }
+.diag-capture { margin-top: 1.6rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.14); }
+.diag-capture .field label { color: #cdd8ee; font-size: 0.85rem; }
+.diag-capture input {
+  width: 100%; padding: 0.75em 0.9em; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.06); color: #fff; font-family: var(--sans); font-size: 0.95rem;
+}
+.diag-capture input::placeholder { color: #93a3c4; }
+.diag-capture input:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px; }
+@media (max-width: 820px) {
+  .diag { grid-template-columns: 1fr; }
+  .diag-result { position: static; }
+}
+
+/* ---- Parcours en étapes (point de vue client) ---- */
+.journey-steps { list-style: none; margin: 0; padding: 0; position: relative; }
+.journey-steps::before { content: ""; position: absolute; left: 19px; top: 8px; bottom: 8px; width: 2px; background: var(--line); }
+.journey-steps li { position: relative; padding-left: 3.4rem; padding-bottom: 2rem; }
+.journey-steps li:last-child { padding-bottom: 0; }
+.journey-steps__n {
+  position: absolute; left: 0; top: 0; width: 40px; height: 40px; border-radius: 50%;
+  display: grid; place-items: center; background: #fff; border: 2px solid var(--navy);
+  font-family: var(--mono); font-weight: 600; color: var(--navy); font-size: 0.9rem;
+}
+.journey-steps h4 { font-family: var(--display); font-size: 1.15rem; color: var(--navy); margin: 0.2rem 0 0.4rem; }
+.journey-steps p { color: var(--gray); margin: 0; }
+
+/* ---- Grille tarifaire ---- */
+/* Grille tarifaire de la page Accompagnement — portée limitée à .price-grid
+   pour ne pas interférer avec les cartes tarifaires de la page Formation. */
+.price-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1.2rem; }
+.price-grid .price-card { border: 1px solid var(--line); border-radius: 12px; padding: 1.6rem; background: #fff; display: flex; flex-direction: column; box-shadow: var(--shadow-sm); }
+.price-grid .price-card--feature { border-color: var(--navy); box-shadow: var(--shadow-md); position: relative; }
+.price-grid .price-card--feature::before {
+  content: "Le plus choisi"; position: absolute; top: -0.7rem; left: 1.6rem; background: var(--gold); color: #fff;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 0.3em 0.8em; border-radius: 100px;
+}
+.price-grid .price-card h4 { font-size: 1.15rem; margin-bottom: 0.3rem; }
+.price-grid .price__amount { font-size: 2rem; font-weight: 600; color: var(--navy); line-height: 1; }
+.price-grid .price__unit { font-size: 0.85rem; color: var(--gray); }
+.price-grid .price-card ul { list-style: none; margin: 1.1rem 0 1.4rem; padding: 0; flex: 1; }
+.price-grid .price-card li { position: relative; padding-left: 1.5rem; margin-bottom: 0.6rem; font-size: 0.94rem; color: var(--ink); }
+.price-grid .price-card li::before { content: ""; position: absolute; left: 0; top: 0.55em; width: 8px; height: 8px; border-left: 2px solid var(--gold); border-bottom: 2px solid var(--gold); transform: rotate(-45deg); }
+
+/* ---- Note anti-arnaque (formation) : affichée clairement, pas en petit ---- */
+.disclaimer {
+  border-left: 3px solid var(--gold); background: var(--gold-soft); border-radius: 0 8px 8px 0;
+  padding: 1.1rem 1.4rem; margin: 1.6rem 0; color: #5c4a24;
+}
+.disclaimer strong { color: #3d3016; }
+
+/* ---- Widget WhatsApp flottant (présent sur toutes les pages) ---- */
+.wa-fab {
+  position: fixed; right: clamp(14px, 3vw, 26px); bottom: clamp(14px, 3vw, 26px); z-index: 200;
+  display: inline-flex; align-items: center; gap: 0.6em; text-decoration: none;
+  background: #25D366; color: #04310f; font-family: var(--sans); font-weight: 700; font-size: 0.92rem;
+  padding: 0.75em 1.1em 0.75em 0.85em; border-radius: 100px; box-shadow: 0 8px 26px -8px rgba(4,49,15,0.5);
+  transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+.wa-fab:hover { transform: translateY(-2px); color: #04310f; box-shadow: 0 12px 30px -8px rgba(4,49,15,0.55); }
+.wa-fab svg { width: 24px; height: 24px; flex: none; }
+.wa-fab__label { white-space: nowrap; }
+@media (max-width: 560px) { .wa-fab__label { display: none; } .wa-fab { padding: 0.85em; } }
+@media (prefers-reduced-motion: reduce) { .wa-fab { transition: none; } }
+
+/* ---- Registres de contenu / bandeaux publics ---- */
+.audience-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.2rem; }
+.audience-card { border: 1px solid var(--line); border-radius: 12px; padding: 1.6rem; background: #fff; }
+.audience-card__k { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
+.audience-card h4 { margin: 0.4rem 0 0.5rem; }
+.audience-card p { color: var(--gray); margin: 0 0 1rem; }
+
+/* ---- Bande de crédibilité fondateur ---- */
+.founder { display: grid; grid-template-columns: auto 1fr; gap: clamp(1.2rem, 3vw, 2.4rem); align-items: center; }
+.founder__photo { width: clamp(96px, 16vw, 150px); aspect-ratio: 1; border-radius: 50%; object-fit: cover; border: 2px solid var(--navy); }
+.founder__creds { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
+.founder__cred { font-size: 0.82rem; font-weight: 600; color: var(--navy); background: var(--paper-tint); border-radius: 100px; padding: 0.4em 0.9em; }
+@media (max-width: 560px) { .founder { grid-template-columns: 1fr; text-align: center; } .founder__photo { margin-inline: auto; } .founder__creds { justify-content: center; } }

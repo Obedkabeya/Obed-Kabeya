@@ -6,11 +6,15 @@
   const page = document.body.getAttribute("data-page") || "";
   const year = new Date().getFullYear();
 
-  // Menu réduit : Personnel et Professionnel restent accessibles depuis les
-  // boutons de la page d'accueil, mais sont retirés du menu de navigation.
+  // Architecture (brief KBO) : les trois pôles du cabinet en tête de navigation,
+  // puis Ressources / À propos / Contact.
   const links = [
     { href: "index.html", label: "Accueil", key: "accueil" },
-    { href: "galerie.html", label: "Galerie", key: "galerie" },
+    { href: "formation.html", label: "Formation", key: "formation" },
+    { href: "accompagnement.html", label: "Accompagnement", key: "accompagnement" },
+    { href: "conseil.html", label: "Conseil", key: "conseil" },
+    { href: "ressources.html", label: "Ressources", key: "ressources" },
+    { href: "personnel.html", label: "À propos", key: "personnel" },
     { href: "contact.html", label: "Contact", key: "contact" },
   ];
 
@@ -83,6 +87,23 @@
   if (h) h.outerHTML = header;
   if (f) f.outerHTML = footer;
 
+  // ---- Widget WhatsApp flottant (canal réellement utilisé) : présent partout.
+  //      Le numéro vient des réglages (s.whatsapp) ; sans numéro, il renvoie
+  //      vers la page Contact plutôt que d'inventer un contact. ----
+  (function () {
+    if (document.querySelector(".wa-fab")) return;
+    const waIcon = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.9c0 2.1.55 4.06 1.6 5.8L2 22l4.42-1.68a9.9 9.9 0 0 0 5.62 1.74h.01c5.45 0 9.9-4.45 9.9-9.9 0-2.65-1.03-5.14-2.9-7.02A9.82 9.82 0 0 0 12.04 2zm0 18.02h-.01a8.2 8.2 0 0 1-4.19-1.15l-.3-.18-2.62 1 .7-2.56-.2-.32a8.2 8.2 0 0 1-1.26-4.36c0-4.54 3.7-8.23 8.24-8.23 2.2 0 4.27.86 5.82 2.42a8.18 8.18 0 0 1 2.41 5.82c0 4.54-3.7 8.23-8.24 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.69-.8-.23-.09-.39-.13-.56.12-.16.25-.64.8-.79.97-.14.16-.29.18-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.01-.38.11-.5.11-.11.25-.29.37-.43.13-.14.17-.25.25-.41.08-.16.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.4-.42-.56-.43l-.48-.01c-.16 0-.43.06-.66.31-.23.25-.86.85-.86 2.07 0 1.22.89 2.4 1.01 2.56.12.16 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.14-1.18-.06-.11-.22-.17-.47-.29z"/></svg>';
+    const a = document.createElement("a");
+    a.className = "wa-fab";
+    a.href = "contact.html";
+    a.target = "_blank"; a.rel = "noopener";
+    a.setAttribute("data-wa-link", "");
+    a.setAttribute("aria-label", "Écrire sur WhatsApp");
+    a.innerHTML = waIcon + '<span class="wa-fab__label">WhatsApp</span>';
+    const mount = () => { if (document.body && !document.querySelector(".wa-fab")) document.body.appendChild(a); };
+    if (document.body) mount(); else document.addEventListener("DOMContentLoaded", mount);
+  })();
+
   // Secret owner access: tap the footer copyright 5 times quickly → login page.
   // No visible admin link for visitors; only you know the gesture.
   (function () {
@@ -124,11 +145,12 @@
     window.addEventListener("scroll", onScroll, { passive: true });
   }
 
-  // Reveal on scroll
+  // Reveal on scroll (inclut la ligne verticale signature, qui se dessine une
+  // fois à l'arrivée en vue — un seul mouvement orchestré, pas à chaque scroll).
   const obs = new IntersectionObserver((entries) => {
     entries.forEach(en => { if (en.isIntersecting) { en.target.classList.add("is-in"); obs.unobserve(en.target); } });
   }, { threshold: 0.12 });
-  document.querySelectorAll(".reveal").forEach(el => obs.observe(el));
+  document.querySelectorAll(".reveal, .reveal-line").forEach(el => obs.observe(el));
 
   // ---- Live settings: applied to every page ----
   let currentSettings = null;
@@ -150,6 +172,18 @@
       document.querySelectorAll("[data-email-link]").forEach(a => { a.href = "mailto:" + s.email; });
       document.querySelectorAll("[data-email-text]").forEach(el => { el.textContent = s.email; });
     }
+    // WhatsApp : numéro international sans « + » ni espaces (ex. 22990112233).
+    const waRaw = (s.whatsapp || (s.social && s.social.whatsapp) || "").toString();
+    const waNum = waRaw.replace(/[^\d]/g, "");
+    document.querySelectorAll("[data-wa-link]").forEach(a => {
+      if (waNum) {
+        const msg = a.getAttribute("data-wa-msg") || "Bonjour, je vous contacte depuis le site KBO Corporate Finance.";
+        a.href = "https://wa.me/" + waNum + "?text=" + encodeURIComponent(msg);
+        a.target = "_blank"; a.rel = "noopener";
+      } else {
+        a.href = "contact.html"; a.removeAttribute("target");
+      }
+    });
     const photo = document.getElementById("heroPhoto");
     if (photo && s.photo) photo.src = s.photo;
     // Editable images (biography, etc.)
