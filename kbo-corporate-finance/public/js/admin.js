@@ -365,6 +365,21 @@
           el.textContent = "⚠ L'envoi d'e-mail n'est PAS actif — ajoutez BREVO_API_KEY (et MAIL_FROM) dans les variables du serveur.";
           el.style.color = "#b3261e";
         }
+        // Diagnostic : quelles variables d'environnement le serveur voit-il réellement ?
+        const diag = $("mailDetected");
+        if (diag) {
+          const d = c.detected || {};
+          const line = (name, ok) => "<li style=\"color:" + (ok ? "#1a7a4c" : "#8a8f98") +
+            "\">" + (ok ? "✓" : "○") + " " + name + " : " + (ok ? "détectée" : "absente") + "</li>";
+          diag.innerHTML = "<div style=\"font-size:.82rem;margin-top:.5rem\">Variables lues sur le serveur :" +
+            "<ul style=\"margin:.35rem 0 0;padding-left:1.1rem;list-style:none\">" +
+            line("BREVO_API_KEY", d.BREVO_API_KEY) +
+            line("MAIL_FROM", d.MAIL_FROM) +
+            line("SENDGRID_API_KEY", d.SENDGRID_API_KEY) +
+            line("SMTP_USER", d.SMTP_USER) +
+            line("SMTP_PASS", d.SMTP_PASS) +
+            "</ul></div>";
+        }
       }).catch(() => {});
   }
   $("mailTest").addEventListener("click", () => {

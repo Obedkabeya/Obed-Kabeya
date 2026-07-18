@@ -43,32 +43,43 @@ CE QUI A ÉTÉ AJOUTÉ POUR RAILWAY
 
 
 ------------------------------------------------------------
-E-MAIL (formulaire de contact / candidatures)
+E-MAIL (formulaire de contact / candidatures)  —  via BREVO (API HTTP)
 ------------------------------------------------------------
-  Le mot de passe e-mail n'est PLUS stocké dans un fichier (sécurité).
-  Il se configure UNIQUEMENT via les Variables Railway. Ajoutez :
+  Railway (offre gratuite) bloque TOUS les ports SMTP sortants. On envoie donc
+  les e-mails par API HTTP (port 443, jamais bloqué), avec Brevo (gratuit).
 
-       SMTP_USER  =  votre adresse Gmail (ex. Obedkabeya1996@gmail.com)
-       SMTP_PASS  =  votre « mot de passe d'application » Google
+  ÉTAPES :
+    1. Créez un compte gratuit sur  https://www.brevo.com
+    2. Vérifiez votre adresse d'expéditeur :
+         Brevo → Senders, Domains & Dedicated IPs → Senders → Add a sender
+         (utilisez votre Gmail ; Brevo vous enverra un e-mail de confirmation).
+    3. Créez une clé API :
+         Brevo → menu de votre compte → SMTP & API → API Keys → Generate a new key
+         (copiez la clé, elle commence par « xkeysib-… »).
+    4. Sur Railway → onglet « Variables » du service du site, ajoutez :
 
-  (facultatif, valeurs par défaut déjà bonnes pour Gmail)
-       SMTP_HOST  =  smtp.gmail.com
-       SMTP_PORT  =  587
+           BREVO_API_KEY  =  votre clé API Brevo (xkeysib-…)
+           MAIL_FROM      =  votre adresse expéditrice VÉRIFIÉE à l'étape 2
 
-  ⚠️ IMPORTANT — SÉCURITÉ :
-     L'ancien mot de passe d'application a fuité sur GitHub. Il faut le
-     RÉVOQUER puis en créer un NOUVEAU :
-       Compte Google → Sécurité → Validation en 2 étapes →
-       Mots de passe des applications → supprimer l'ancien, en créer un neuf.
-     Mettez ce NOUVEAU mot de passe dans la variable SMTP_PASS de Railway.
+       (facultatif) MAIL_FROM_NAME = KBO Corporate Finance
 
-  Pour vérifier : Tableau de bord → onglet « Compte & e-mail » →
-  « Envoyer un e-mail de test ».
+    5. Vous pouvez SUPPRIMER les anciennes variables SMTP_USER / SMTP_PASS /
+       SMTP_HOST / SMTP_PORT (elles ne servent plus).
+
+    6. Railway redéploie tout seul. Vérifiez : Tableau de bord →
+       « Compte & e-mail » → « Envoyer un e-mail de test ».
+       Dans les logs Railway au démarrage : « E-mail (formulaire): actif via brevo ».
+
+  (Alternative : SendGrid. Créez une clé API SendGrid et mettez-la dans la
+   variable SENDGRID_API_KEY à la place de BREVO_API_KEY.)
+
+  NB sécurité : le mot de passe d'application Gmail qui avait fuité n'est plus
+  utilisé du tout. Pensez tout de même à l'avoir révoqué chez Google.
 
 ------------------------------------------------------------
 IMPORTANT
 ------------------------------------------------------------
-  - Le PORT est géré automatiquement par Railway (ne rien changer).
+  - Le PORT du site est géré automatiquement par Railway (ne rien changer).
   - Le fichier data/mail.json n'existe plus et est ignoré par git (.gitignore).
   - Gardez une COPIE de ce dossier en sauvegarde.
 ====================================================================

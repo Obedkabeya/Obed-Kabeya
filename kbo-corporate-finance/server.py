@@ -171,25 +171,10 @@ def _file_delete(rel_path):
 PORT = int(os.environ.get("PORT", "8000"))
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "kbo-admin")
 
-# SMTP — configuré UNIQUEMENT par variables d'environnement (jamais dans un fichier,
-# pour ne jamais exposer le mot de passe sur GitHub). Minimum requis : SMTP_USER + SMTP_PASS.
-SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.gmail.com").strip()
-try:
-    # Défaut 465 (SSL) : plus fiable sur Railway, qui bloque souvent le 587 (STARTTLS).
-    SMTP_PORT = int(os.environ.get("SMTP_PORT", "465"))
-except ValueError:
-    SMTP_PORT = 465
-SMTP_USER = os.environ.get("SMTP_USER", "").strip()
-SMTP_PASS = os.environ.get("SMTP_PASS", "")            # mot de passe d'application Gmail
-SMTP_FROM = os.environ.get("SMTP_FROM", "").strip() or SMTP_USER
-
-# Envoi d'e-mail par API HTTP (port 443) — recommandé sur Railway, qui bloque
-# les ports SMTP sortants. Priorité : Brevo, puis SendGrid, puis SMTP (secours local).
-BREVO_API_KEY = os.environ.get("BREVO_API_KEY", "").strip()
-SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY", "").strip()
-# Adresse expéditrice (doit être un expéditeur VÉRIFIÉ chez Brevo/SendGrid).
-MAIL_FROM = os.environ.get("MAIL_FROM", "").strip() or SMTP_FROM or SMTP_USER
-MAIL_FROM_NAME = os.environ.get("MAIL_FROM_NAME", "").strip() or "KBO Corporate Finance"
+# NOTE : la configuration e-mail (BREVO_API_KEY, SENDGRID_API_KEY, MAIL_FROM,
+# SMTP_*) est lue directement dans l'environnement À CHAQUE ENVOI, via _mail_env()
+# (voir plus bas). Rien n'est figé au démarrage, rien n'est stocké dans un fichier.
+# Priorité : Brevo (API HTTP) → SendGrid (API HTTP) → SMTP (secours).
 
 # Textes éditables du site (clés utilisées côté page via data-text="clé").
 DEFAULT_TEXTS = {
@@ -536,25 +521,55 @@ def _destroy_session(token):
 #  E-MAIL — priorité aux API HTTP (port 443, jamais bloqué par Railway) :
 #  1) Brevo   2) SendGrid   3) SMTP (secours, surtout en local)
 # ============================================================
+def _mail_env():
+    """Lit les variables d'e-mail depuis l'environnement À CHAQUE APPEL
+    (et pas seulement au démarrage) — indispensable pour Railway."""
+    try:
+        smtp_port = int(os.environ.get("SMTP_PORT", "465"))
+    except ValueError:
+        smtp_port = 465
+    smtp_user = os.environ.get("SMTP_USER", "").strip()
+    return {
+        "brevo": os.environ.get("BREVO_API_KEY", "").strip(),
+        "sendgrid": os.environ.get("SENDGRID_API_KEY", "").strip(),
+        "smtp_host": os.environ.get("SMTP_HOST", "smtp.gmail.com").strip(),
+        "smtp_port": smtp_port,
+        "smtp_user": smtp_user,
+        "smtp_pass": os.environ.get("SMTP_PASS", ""),
+        "from": (os.environ.get("MAIL_FROM", "").strip()
+                 or os.environ.get("SMTP_FROM", "").strip()
+                 or smtp_user),
+        "from_name": os.environ.get("MAIL_FROM_NAME", "").strip() or "KBO Corporate Finance",
+    }
+
+
 def _get_mail():
     """État de l'e-mail (fournisseur + expéditeur). Ne renvoie AUCUN secret."""
-    if BREVO_API_KEY:
+    e = _mail_env()
+    if e["brevo"]:
         provider = "brevo"
-    elif SENDGRID_API_KEY:
+    elif e["sendgrid"]:
         provider = "sendgrid"
-    elif SMTP_HOST and SMTP_USER and SMTP_PASS:
+    elif e["smtp_host"] and e["smtp_user"] and e["smtp_pass"]:
         provider = "smtp"
     else:
         provider = None
     return {
         "provider": provider,
         "active": provider is not None,
-        "from": MAIL_FROM,
-        # champs SMTP (secours local)
-        "host": SMTP_HOST or "smtp.gmail.com",
-        "port": SMTP_PORT or 465,
-        "user": SMTP_USER,
-        "pass": SMTP_PASS,
+        "from": e["from"],
+        "host": e["smtp_host"],
+        "port": e["smtp_port"],
+        "user": e["smtp_user"],
+        "pass": e["smtp_pass"],
+        # Diagnostic (booléens uniquement, aucun secret) : quelles variables sont vues ?
+        "detected": {
+            "BREVO_API_KEY": bool(e["brevo"]),
+            "SENDGRID_API_KEY": bool(e["sendgrid"]),
+            "MAIL_FROM": bool(e["from"]),
+            "SMTP_USER": bool(e["smtp_user"]),
+            "SMTP_PASS": bool(e["smtp_pass"]),
+        },
     }
 
 
@@ -579,7 +594,7 @@ def _http_post_json(url, headers, payload, timeout=25):
         return False, "%s" % exc
 
 
-def _send_via_brevo(from_email, from_name, to_addr, subject, body, reply_to=None):
+def _send_via_brevo(api_key, from_email, from_name, to_addr, subject, body, reply_to=None):
     payload = {
         "sender": {"name": from_name, "email": from_email},
         "to": [{"email": to_addr}],
@@ -589,11 +604,11 @@ def _send_via_brevo(from_email, from_name, to_addr, subject, body, reply_to=None
     if reply_to:
         payload["replyTo"] = {"email": reply_to}
     ok, detail = _http_post_json("https://api.brevo.com/v3/smtp/email",
-                                 {"api-key": BREVO_API_KEY, "accept": "application/json"}, payload)
+                                 {"api-key": api_key, "accept": "application/json"}, payload)
     return ok, ("envoyé (Brevo)" if ok else "erreur Brevo : " + detail)
 
 
-def _send_via_sendgrid(from_email, from_name, to_addr, subject, body, reply_to=None):
+def _send_via_sendgrid(api_key, from_email, from_name, to_addr, subject, body, reply_to=None):
     payload = {
         "personalizations": [{"to": [{"email": to_addr}]}],
         "from": {"email": from_email, "name": from_name},
@@ -603,7 +618,7 @@ def _send_via_sendgrid(from_email, from_name, to_addr, subject, body, reply_to=N
     if reply_to:
         payload["reply_to"] = {"email": reply_to}
     ok, detail = _http_post_json("https://api.sendgrid.com/v3/mail/send",
-                                 {"Authorization": "Bearer " + SENDGRID_API_KEY}, payload)
+                                 {"Authorization": "Bearer " + api_key}, payload)
     return ok, ("envoyé (SendGrid)" if ok else "erreur SendGrid : " + detail)
 
 
@@ -631,16 +646,16 @@ class _SMTP_IPv4(smtplib.SMTP):
         return socket.create_connection((ip, port), timeout, getattr(self, "source_address", None))
 
 
-def _send_via_smtp(from_email, to_addr, subject, body, reply_to=None):
-    host = SMTP_HOST or "smtp.gmail.com"
+def _send_via_smtp(e, from_email, to_addr, subject, body, reply_to=None):
+    host = e["smtp_host"] or "smtp.gmail.com"
     try:
-        port = int(SMTP_PORT or 465)
+        port = int(e["smtp_port"] or 465)
     except (TypeError, ValueError):
         port = 465
     try:
         msg = EmailMessage()
         msg["Subject"] = subject
-        msg["From"] = from_email or SMTP_USER
+        msg["From"] = from_email or e["smtp_user"]
         msg["To"] = to_addr
         if reply_to:
             msg["Reply-To"] = reply_to
@@ -652,7 +667,7 @@ def _send_via_smtp(from_email, to_addr, subject, body, reply_to=None):
             server = _SMTP_IPv4(host=host, port=port, timeout=30)
             server.ehlo(); server.starttls(context=context); server.ehlo()
         try:
-            server.login(SMTP_USER, SMTP_PASS)
+            server.login(e["smtp_user"], e["smtp_pass"])
             server.send_message(msg)
         finally:
             try:
@@ -666,15 +681,17 @@ def _send_via_smtp(from_email, to_addr, subject, body, reply_to=None):
 
 def _send_email(to_addr, subject, body, reply_to=None):
     """Envoie un e-mail. Renvoie (envoyé: bool, détail: str).
+    Les variables sont relues dans l'environnement à CHAQUE appel.
     Priorité : Brevo (API HTTP) → SendGrid (API HTTP) → SMTP (secours)."""
-    from_email = MAIL_FROM or _get_settings().get("email", "")
-    from_name = MAIL_FROM_NAME
-    if BREVO_API_KEY:
-        return _send_via_brevo(from_email, from_name, to_addr, subject, body, reply_to)
-    if SENDGRID_API_KEY:
-        return _send_via_sendgrid(from_email, from_name, to_addr, subject, body, reply_to)
-    if SMTP_HOST and SMTP_USER and SMTP_PASS:
-        return _send_via_smtp(from_email, to_addr, subject, body, reply_to)
+    e = _mail_env()
+    from_email = e["from"] or _get_settings().get("email", "")
+    from_name = e["from_name"]
+    if e["brevo"]:
+        return _send_via_brevo(e["brevo"], from_email, from_name, to_addr, subject, body, reply_to)
+    if e["sendgrid"]:
+        return _send_via_sendgrid(e["sendgrid"], from_email, from_name, to_addr, subject, body, reply_to)
+    if e["smtp_host"] and e["smtp_user"] and e["smtp_pass"]:
+        return _send_via_smtp(e, from_email, to_addr, subject, body, reply_to)
     return False, ("Aucun service d'e-mail configuré. Ajoutez BREVO_API_KEY "
                    "(recommandé sur Railway), ou SENDGRID_API_KEY, ou les variables SMTP.")
 
@@ -842,7 +859,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send_json({"error": "Non autorisé"}, 401)
             cfg = _get_mail()
             return self._send_json({"provider": cfg["provider"], "active": cfg["active"],
-                                    "from": cfg["from"]})
+                                    "from": cfg["from"], "detected": cfg["detected"]})
 
         if path == "/api/submissions":  # admin-only inbox
             if not self._is_admin():
