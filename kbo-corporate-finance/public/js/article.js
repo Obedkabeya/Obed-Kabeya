@@ -108,9 +108,74 @@
     return;
   }
 
+  // ---------------- Commentaires ----------------
+  function fmtDate(iso) {
+    try { return new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" }); }
+    catch (e) { return ""; }
+  }
+
+  function renderComments(list) {
+    const box = document.getElementById("commentsList");
+    if (!box) return;
+    if (!list.length) {
+      box.innerHTML = '<p class="muted" style="font-size:.95rem">Aucun commentaire pour le moment. Soyez le premier à réagir.</p>';
+      return;
+    }
+    const admin = window.__KBO_ADMIN__ === true;
+    box.innerHTML = list.map(c =>
+      '<article class="comment">' +
+        '<div class="comment__head"><strong>' + esc(c.nom) + "</strong><span>" + fmtDate(c.date) + "</span>" +
+        (admin ? '<button type="button" class="comment__del" data-del="' + esc(c.id) + '">Supprimer</button>' : "") +
+        "</div><p>" + esc(c.message).replace(/\n/g, "<br>") + "</p></article>"
+    ).join("");
+    if (admin) {
+      box.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", () => {
+        if (!confirm("Supprimer ce commentaire ?")) return;
+        fetch("/api/comments-delete", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ article: id, id: b.getAttribute("data-del") }),
+        }).then(() => loadComments());
+      }));
+    }
+  }
+
+  function loadComments() {
+    fetch("/api/comments/" + encodeURIComponent(id))
+      .then(r => (r.ok ? r.json() : []))
+      .then(renderComments)
+      .catch(() => {});
+  }
+
+  function wireCommentForm() {
+    const form = document.getElementById("commentForm");
+    if (!form) return;
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const msg = document.getElementById("commentMsg");
+      const nom = form.nom.value.trim(), message = form.message.value.trim();
+      if (!nom || !message) { msg.textContent = "Votre nom et votre message sont requis."; msg.className = "form-msg err"; return; }
+      const btn = form.querySelector('[type="submit"]');
+      btn.disabled = true;
+      msg.textContent = "Envoi…"; msg.className = "form-msg";
+      fetch("/api/comments/" + encodeURIComponent(id), {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ nom: nom, message: message }),
+      }).then(r => r.json().then(j => ({ ok: r.ok, j })))
+        .then(o => {
+          if (!o.ok) throw new Error(o.j.error || "Erreur");
+          form.reset();
+          msg.textContent = "✓ Merci, votre commentaire est publié.";
+          msg.className = "form-msg ok";
+          loadComments();
+        })
+        .catch(err => { msg.textContent = err.message; msg.className = "form-msg err"; })
+        .finally(() => { btn.disabled = false; });
+    });
+  }
+
   fetch(`/api/articles/${encodeURIComponent(id)}`)
     .then(r => { if (!r.ok) throw new Error("nf"); return r.json(); })
-    .then(render)
+    .then(a => { render(a); loadComments(); wireCommentForm(); })
     .catch(() => {
       root.innerHTML = `<p class="empty-state">Cet article n'a pas pu être chargé. Assurez-vous que le serveur est démarré, puis <a href="personnel.html#blog">retournez au blog</a>.</p>`;
     });

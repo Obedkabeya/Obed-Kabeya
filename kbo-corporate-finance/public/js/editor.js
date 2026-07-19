@@ -24,6 +24,108 @@
     document.body.classList.add("has-admin-bar");
     $("abPreview").href = location.pathname + "?visitor=1";
 
+    // ---- Barre de mise en forme (style traitement de texte) ----
+    // Apparaît en mode édition et s'applique au texte sélectionné / au bloc actif.
+    let activeEl = null;
+    const tb = document.createElement("div");
+    tb.className = "fmt-bar";
+    tb.hidden = true;
+    tb.innerHTML =
+      '<button type="button" data-cmd="bold" title="Gras"><b>G</b></button>' +
+      '<button type="button" data-cmd="italic" title="Italique"><i>I</i></button>' +
+      '<button type="button" data-cmd="underline" title="Souligné"><u>S</u></button>' +
+      '<span class="fmt-bar__sep"></span>' +
+      '<button type="button" data-align="left" title="Aligner à gauche">⯇</button>' +
+      '<button type="button" data-align="center" title="Centrer">≡</button>' +
+      '<button type="button" data-align="right" title="Aligner à droite">⯈</button>' +
+      '<span class="fmt-bar__sep"></span>' +
+      '<button type="button" data-size="-1" title="Réduire la taille">A−</button>' +
+      '<button type="button" data-size="1" title="Agrandir la taille">A+</button>' +
+      '<button type="button" data-case="upper" title="MAJUSCULES">AA</button>' +
+      '<span class="fmt-bar__sep"></span>' +
+      '<select class="fmt-bar__font" data-font title="Police du texte">' +
+        '<option value="">Police…</option>' +
+        '<option value="var(--title)">Titre (Archivo)</option>' +
+        '<option value="var(--sans)">Texte (Inter)</option>' +
+        '<option value="var(--mono)">Chiffres (Plex Mono)</option>' +
+        '<option value="Georgia, \'Times New Roman\', serif">Classique (serif)</option>' +
+      "</select>" +
+      '<span class="fmt-bar__sep"></span>' +
+      '<label class="fmt-bar__color" title="Couleur du texte">A<input type="color" data-color value="#1e3b8b"></label>' +
+      '<button type="button" data-clear title="Effacer la mise en forme">✕ mise en forme</button>';
+    document.body.appendChild(tb);
+
+    // Ne jamais perdre la sélection quand on clique un bouton de la barre.
+    // (On laisse passer les menus/champs, sinon la liste des polices ne s'ouvre pas.)
+    tb.addEventListener("mousedown", (e) => {
+      if (!e.target.closest("select, input")) e.preventDefault();
+    });
+
+    function targetEl() {
+      return activeEl && activeEl.isContentEditable ? activeEl : null;
+    }
+    function afterFormat(el) { if (el) save(el); }
+
+    // Les styles posés sur l'élément lui-même ne sont pas enregistrés (seul son
+    // contenu l'est) : on les applique donc à un conteneur INTERNE, qui, lui,
+    // fait partie du contenu et survit au rechargement.
+    function fmtWrap(el) {
+      let w = el.querySelector(":scope > span[data-fmt]");
+      if (!w) {
+        w = document.createElement("span");
+        w.setAttribute("data-fmt", "");
+        w.style.display = "block";
+        while (el.firstChild) w.appendChild(el.firstChild);
+        el.appendChild(w);
+      }
+      return w;
+    }
+    function unwrapFmt(el) {
+      const w = el.querySelector(":scope > span[data-fmt]");
+      if (!w) return;
+      while (w.firstChild) el.insertBefore(w.firstChild, w);
+      w.remove();
+    }
+
+    tb.addEventListener("click", (e) => {
+      const btn = e.target.closest("button, label");
+      if (!btn) return;
+      const el = targetEl();
+      if (!el) { hint("Cliquez d'abord dans un texte à modifier.", "err"); return; }
+      el.focus();
+      if (btn.dataset.cmd) {
+        document.execCommand(btn.dataset.cmd, false, null);
+      } else if (btn.dataset.align) {
+        fmtWrap(el).style.textAlign = btn.dataset.align;
+      } else if (btn.dataset.size) {
+        const w = fmtWrap(el);
+        const cur = parseFloat(getComputedStyle(w).fontSize) || 16;
+        const next = Math.min(72, Math.max(10, cur + (parseInt(btn.dataset.size, 10) * 2)));
+        w.style.fontSize = next + "px";
+      } else if (btn.dataset.case) {
+        const w = fmtWrap(el);
+        w.style.textTransform = w.style.textTransform === "uppercase" ? "none" : "uppercase";
+      } else if (btn.hasAttribute("data-clear")) {
+        document.execCommand("removeFormat", false, null);
+        unwrapFmt(el);
+      } else { return; }
+      afterFormat(el);
+    });
+    tb.querySelector("[data-font]").addEventListener("change", (e) => {
+      const el = targetEl();
+      if (!el) { hint("Cliquez d'abord dans un texte à modifier.", "err"); e.target.value = ""; return; }
+      if (e.target.value) fmtWrap(el).style.fontFamily = e.target.value;
+      e.target.value = "";
+      afterFormat(el);
+    });
+    tb.querySelector("[data-color]").addEventListener("input", (e) => {
+      const el = targetEl();
+      if (!el) return;
+      el.focus();
+      document.execCommand("foreColor", false, e.target.value);
+      afterFormat(el);
+    });
+
     let editing = false;
     const editBtn = $("abEdit");
     editBtn.addEventListener("click", () => setEditing(!editing));
@@ -37,12 +139,15 @@
       editBtn.classList.toggle("is-on", on);
       editBtn.textContent = on ? "✓ Terminer" : "✏️ Modifier le texte";
       hint(on ? "Cliquez un texte pour le modifier — il s'enregistre tout seul." : "");
+      tb.hidden = !on;
+      if (!on) activeEl = null;
       window.KBO.editableElements().forEach(el => {
         if (on) {
           el.setAttribute("contenteditable", "true");
           el.classList.add("kbo-editable");
           if (!el.__wired) {
             el.__wired = true;
+            el.addEventListener("focus", () => { activeEl = el; });
             el.addEventListener("blur", () => save(el));
             el.addEventListener("keydown", (e) => {
               if (e.key === "Enter" && /^(H[1-5]|SPAN)$/.test(el.tagName)) { e.preventDefault(); el.blur(); }

@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
-<body data-page="personnel">
+<body data-page="article" data-nav="ressources">
   <div id="site-header"></div>
 
   <section class="section">
@@ -19,7 +19,29 @@
         <p class="empty-state">Chargement…</p>
       </div>
       <div class="narrow" style="margin:3rem auto 0;text-align:center;">
-        <a class="btn btn--ghost" href="personnel.html#blog">← Retour au blog</a>
+        <a class="btn btn--ghost" href="ressources.html">← Retour aux ressources</a>
+      </div>
+
+      <!-- COMMENTAIRES -->
+      <div class="narrow comments" style="margin:3.5rem auto 0">
+        <h3>Commentaires</h3>
+        <hr class="divider" />
+        <div id="commentsList"><p class="muted" style="font-size:.95rem">Chargement des commentaires…</p></div>
+
+        <div class="form-wrap" style="margin-top:2rem">
+          <h4 style="margin-bottom:.8rem">Laisser un commentaire</h4>
+          <form id="commentForm">
+            <div class="form-grid">
+              <div class="field field--full"><label for="c_nom">Votre nom <span class="req">*</span></label><input id="c_nom" name="nom" type="text" maxlength="80" required /></div>
+              <div class="field field--full"><label for="c_msg">Votre commentaire <span class="req">*</span></label><textarea id="c_msg" name="message" maxlength="2000" required placeholder="Partagez votre réaction ou votre question."></textarea></div>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn--primary" type="submit">Publier <span class="arrow">→</span></button>
+              <span class="form-msg" id="commentMsg"></span>
+            </div>
+            <p class="form-note">Votre nom et votre commentaire seront visibles publiquement. Aucune adresse e-mail n'est demandée.</p>
+          </form>
+        </div>
       </div>
     </div>
   </section>

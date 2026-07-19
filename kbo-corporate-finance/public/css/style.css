@@ -238,7 +238,7 @@ p { margin: 0 0 1.1em; }
   transition: transform 0.28s var(--ease), box-shadow 0.28s var(--ease), border-color 0.28s var(--ease);
 }
 .path-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); border-color: transparent; }
-.path-card__num { font-family: var(--serif); font-size: 2.4rem; color: var(--paper-tint); position: absolute; top: 18px; right: 24px; }
+.path-card__num { font-family: var(--title); font-size: 2.4rem; color: var(--paper-tint); position: absolute; top: 18px; right: 24px; }
 .path-card h3 { margin-bottom: 0.4em; }
 .path-card p { color: var(--gray); margin-bottom: 1.2em; }
 .path-card__link { font-weight: 600; font-size: 0.92rem; display: inline-flex; align-items: center; gap: 0.5em; color: var(--blue); }
@@ -505,7 +505,7 @@ body.editing .kbo-editable:focus { outline: 2px solid var(--blue); background: #
 .price-card h3 { font-size: 1.5rem; margin-bottom: 0.5rem; }
 .price-card__desc { color: var(--gray); font-size: 0.95rem; margin-bottom: 1.4rem; }
 .price-card__price { display: flex; align-items: baseline; gap: 0.3em; margin-top: auto; }
-.price-card__price .amount { font-family: var(--display); font-size: clamp(2.2rem, 5vw, 2.9rem); font-weight: 800; color: var(--navy); letter-spacing: -0.02em; line-height: 1; }
+.price-card__price .amount { font-family: var(--title); font-size: clamp(2.2rem, 5vw, 2.9rem); font-weight: 800; color: var(--navy); letter-spacing: -0.02em; line-height: 1; }
 .price-card__price .per { font-size: 1rem; font-weight: 600; color: var(--gray); }
 .price-card__terms { font-size: 0.9rem; color: var(--gray); margin: 0.5rem 0 1.4rem; }
 .price-card .btn { align-self: flex-start; }
@@ -772,7 +772,7 @@ input[type="range"].diag-range:focus-visible { outline: 2px solid var(--gold); o
   display: grid; place-items: center; background: #fff; border: 2px solid var(--navy);
   font-family: var(--mono); font-weight: 600; color: var(--navy); font-size: 0.9rem;
 }
-.journey-steps h4 { font-family: var(--display); font-size: 1.15rem; color: var(--navy); margin: 0.2rem 0 0.4rem; }
+.journey-steps h4 { font-family: var(--title); font-size: 1.15rem; color: var(--navy); margin: 0.2rem 0 0.4rem; }
 .journey-steps p { color: var(--gray); margin: 0; }
 
 /* ---- Grille tarifaire ---- */
@@ -833,7 +833,11 @@ input[type="range"].diag-range:focus-visible { outline: 2px solid var(--gold); o
 
 /* Hero avec image de fond éditable + dégradé foncé, texte en blanc */
 .hero-bg { position: relative; overflow: hidden; border-bottom: 0; }
-.hero-bg__media { position: absolute; inset: 0; z-index: 0; }
+/* Pas de z-index ici : sinon l'image crée un contexte d'empilement qui enferme
+   ses boutons d'édition sous le voile et sous le texte. Sans z-index, l'image
+   se peint avant (donc dessous) et ses boutons (.slot-admin, z-index 7) peuvent
+   passer au-dessus — le texte superposé reste cliquable et modifiable. */
+.hero-bg__media { position: absolute; inset: 0; }
 .hero-bg__media img, .hero-bg__media .slot-carousel { width: 100%; height: 100%; object-fit: cover; }
 .hero-bg__media .slot-track img { height: 100%; }
 .hero-bg__scrim { position: absolute; inset: 0; z-index: 1; pointer-events: none;
@@ -843,8 +847,10 @@ input[type="range"].diag-range:focus-visible { outline: 2px solid var(--gold); o
 .hero-bg__content h1 { color: #fff; }
 .hero-bg__content .lead { color: rgba(255,255,255,0.92); }
 .hero-bg__content .divider { background: var(--gold); }
-/* En mode édition, l'image passe au-dessus pour rendre ses boutons cliquables */
-body.editing .hero-bg__media { z-index: 4; }
+/* En mode édition : le texte superposé reste éditable, et les boutons d'image
+   passent au-dessus du voile sans masquer le texte. */
+body.editing .hero-bg__content { position: relative; z-index: 3; }
+.hero-bg .slot-admin { z-index: 8; }
 
 /* Fiches formation cliquables */
 .formation-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.4rem; }
@@ -950,3 +956,59 @@ body.editing .hero-bg__media { z-index: 4; }
 .faq summary::after { content: "+"; font-family: var(--sans); font-weight: 400; color: var(--gold); font-size: 1.5rem; line-height: 1; transition: transform .2s var(--ease); }
 .faq details[open] summary::after { transform: rotate(45deg); }
 .faq details p { margin: 0; padding: 0 1.3rem 1.2rem; color: var(--gray); }
+
+/* Alerte : stockage non permanent (pas de base de données) */
+.storage-warn { display: block; background: #fdece9; border: 1px solid #f3b7ac; border-left: 4px solid #b3261e;
+  border-radius: 10px; padding: 1rem 1.3rem; margin-bottom: 1.4rem; color: #7a2318; font-size: 0.92rem; line-height: 1.6; }
+.storage-warn strong { color: #5c1a12; }
+.storage-warn code { background: rgba(0,0,0,.07); padding: .1em .4em; border-radius: 4px; }
+
+/* Barre de mise en forme du texte (mode édition administrateur) */
+.fmt-bar {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: 74px; z-index: 260;
+  display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: center;
+  background: #101a33; border: 1px solid rgba(255,255,255,.14); border-radius: 100px;
+  padding: 6px 10px; box-shadow: 0 12px 34px -10px rgba(0,0,0,.55); max-width: calc(100vw - 24px);
+}
+.fmt-bar button, .fmt-bar__color {
+  background: transparent; border: 0; color: #e7edfa; cursor: pointer; border-radius: 100px;
+  font-family: var(--sans); font-size: .86rem; font-weight: 600; padding: .42em .7em; line-height: 1;
+  display: inline-flex; align-items: center; gap: .3em;
+}
+.fmt-bar button:hover, .fmt-bar__color:hover { background: rgba(255,255,255,.14); }
+.fmt-bar__sep { width: 1px; height: 20px; background: rgba(255,255,255,.18); margin: 0 3px; }
+.fmt-bar__color { position: relative; }
+.fmt-bar__color input[type="color"] { width: 20px; height: 20px; border: 0; background: transparent; padding: 0; cursor: pointer; }
+@media (max-width: 620px) { .fmt-bar { bottom: 112px; font-size: .8rem; } }
+.fmt-bar__font {
+  background: rgba(255,255,255,.12); border: 0; color: #e7edfa; border-radius: 100px;
+  font-family: var(--sans); font-size: .82rem; font-weight: 600; padding: .42em .7em; cursor: pointer;
+}
+.fmt-bar__font option { color: #14161c; background: #fff; }
+
+/* ---- Commentaires d'articles ---- */
+.comments h3 { font-size: clamp(1.3rem, 2.6vw, 1.7rem); }
+.comment { border: 1px solid var(--line); border-radius: 12px; padding: 1.1rem 1.3rem; background: #fff; margin-bottom: .9rem; }
+.comment__head { display: flex; align-items: center; gap: .8rem; margin-bottom: .45rem; flex-wrap: wrap; }
+.comment__head strong { color: var(--navy); }
+.comment__head span { font-size: .82rem; color: var(--gray); }
+.comment__del { margin-left: auto; background: transparent; border: 1px solid var(--line); color: #b3261e;
+  border-radius: 100px; font-size: .76rem; font-weight: 600; padding: .3em .8em; cursor: pointer; }
+.comment__del:hover { background: #b3261e; color: #fff; border-color: #b3261e; }
+.comment p { margin: 0; color: var(--ink); }
+
+/* ---- Inscription aux actualités (pied de page) ---- */
+.footer__news { margin-top: 2.5rem; padding-top: 2rem; border-top: 1px solid rgba(255,255,255,.12);
+  display: grid; grid-template-columns: 1fr auto; gap: 1.2rem 2rem; align-items: center; }
+.footer__news h4 { font-family: var(--sans); font-size: .95rem; color: #fff; margin: 0 0 .35rem; font-weight: 700; }
+.footer__news p { color: #93a1ba; font-size: .88rem; margin: 0; max-width: 480px; }
+.footer__news-form { display: flex; gap: .6rem; flex-wrap: wrap; }
+.footer__news-form input {
+  min-width: 240px; padding: .8em 1em; border-radius: 100px; border: 1px solid rgba(255,255,255,.22);
+  background: rgba(255,255,255,.07); color: #fff; font-family: var(--sans); font-size: .95rem;
+}
+.footer__news-form input::placeholder { color: #93a1ba; }
+.footer__news-form .btn { border-radius: 100px; }
+.footer__news #newsMsg { grid-column: 1 / -1; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+@media (max-width: 760px) { .footer__news { grid-template-columns: 1fr; } .footer__news-form input { min-width: 0; flex: 1; } }

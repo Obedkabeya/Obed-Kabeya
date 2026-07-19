@@ -45,13 +45,18 @@
 
       <!-- DASHBOARD -->
       <div id="dashboard" hidden>
+        <div id="storageWarn" class="storage-warn" hidden>
+          <strong>⚠ Vos modifications ne sont pas permanentes.</strong>
+          <span>Ce site tourne sans base de données : <strong>tout ce que vous modifiez sera effacé au prochain déploiement</strong>. Sur Railway, ajoutez un service <strong>PostgreSQL</strong> et la variable <code>DATABASE_URL</code> au service du site. Une fois branchée, vos textes, images et réglages deviennent définitifs et ne sont plus jamais écrasés par une mise à jour du code.</span>
+        </div>
         <div class="dash-toolbar">
           <a class="btn btn--ghost" href="index.html?visitor=1" target="_blank" rel="noopener">👁 Voir en tant que visiteur</a>
           <span class="muted" style="font-size:.85rem">Ouvre le site tel que le voient vos visiteurs, sans aucun bouton d'édition.</span>
         </div>
         <nav class="admin-tabs" id="adminTabs" aria-label="Sections d'administration">
           <button class="admin-tab is-active" data-tab="identite">Identité &amp; Accueil</button>
-          <button class="admin-tab" data-tab="textes">Textes des pages</button>
+          <button class="admin-tab" data-tab="contenu">Tous les textes</button>
+          <button class="admin-tab" data-tab="textes">Accueil — raccourcis</button>
           <button class="admin-tab" data-tab="reseaux">Réseaux &amp; Contact</button>
           <button class="admin-tab" data-tab="design">Design &amp; couleurs</button>
           <button class="admin-tab" data-tab="blog">Blog &amp; Histoires</button>
@@ -188,6 +193,24 @@
             <span class="form-msg" id="saveMsg"></span>
           </div>
         </form>
+
+        <!-- ===== TOUS LES TEXTES DU SITE ===== -->
+        <div class="tabpanel" data-panel="contenu">
+          <div class="form-wrap">
+            <h3>Tous les textes du site</h3>
+            <p class="muted" style="font-size:.92rem">Choisissez une page : tous ses textes apparaissent ci-dessous, section par section. Modifiez ce que vous voulez puis cliquez « Enregistrer les textes ». C'est exactement la même chose que de modifier directement sur la page.</p>
+            <div class="field field--full" style="max-width:520px">
+              <label for="contentPage">Page à modifier</label>
+              <select id="contentPage"></select>
+            </div>
+            <div class="form-actions" style="margin-bottom:1rem">
+              <button type="button" class="btn btn--primary" id="contentSave">Enregistrer les textes</button>
+              <button type="button" class="btn btn--ghost" id="contentReload">Recharger</button>
+              <span class="form-msg" id="contentMsg"></span>
+            </div>
+            <div id="contentList"></div>
+          </div>
+        </div>
 
         <!-- ===== BLOG & HISTOIRES ===== -->
         <div class="tabpanel" data-panel="blog">
@@ -352,5 +375,6 @@
   <div id="site-footer"></div>
   <script src="js/components.js"></script>
   <script src="js/admin.js"></script>
+  <script src="js/admin-content.js"></script>
 </body>
 </html>

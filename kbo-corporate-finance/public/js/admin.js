@@ -55,7 +55,7 @@
   });
 
   // ---------- tabs ----------
-  const SETTINGS_TABS = ["identite", "textes", "reseaux"];
+  const SETTINGS_TABS = ["identite", "textes", "reseaux", "design"];
   $("adminTabs").addEventListener("click", (e) => {
     const btn = e.target.closest(".admin-tab"); if (!btn || !btn.dataset.tab) return;
     const tab = btn.dataset.tab;
@@ -83,6 +83,8 @@
     SOCIAL.forEach(k => { $(k).value = social[k] || ""; });
     currentPhoto = s.photo || "images/portrait.svg";
     $("photoPreview").src = currentPhoto;
+    // Alerte permanence : sans base de données, les modifications sont éphémères.
+    if ($("storageWarn")) $("storageWarn").hidden = (s._storagePermanent !== false);
     $("emailStatus").textContent = s._emailConfigured
       ? "✓ L'envoi d'e-mail est actif : les messages seront livrés à cette adresse."
       : "Les messages sont enregistrés et affichés dans le terminal du serveur. Pour l'envoi automatique par e-mail, configurez le SMTP (voir README).";

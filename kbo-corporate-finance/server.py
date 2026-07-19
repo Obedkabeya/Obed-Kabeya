@@ -57,6 +57,8 @@ GALLERY_FILE = os.path.join(DATA_DIR, "gallery.json")
 CONTENT_FILE = os.path.join(DATA_DIR, "content.json")      # remplacements de texte (édition en ligne)
 IMGCONTENT_FILE = os.path.join(DATA_DIR, "imgcontent.json")  # remplacements d'images (édition en ligne)
 SLIDES_FILE = os.path.join(DATA_DIR, "slides.json")          # carrousels d'images par emplacement
+COMMENTS_FILE = os.path.join(DATA_DIR, "comments.json")      # commentaires des articles
+NEWSLETTER_FILE = os.path.join(DATA_DIR, "newsletter.json")  # adresses e-mail (offres/actualités)
 AUTH_FILE = os.path.join(DATA_DIR, "auth.json")            # mot de passe admin (haché)
 SESSIONS_FILE = os.path.join(DATA_DIR, "sessions.json")   # sessions d'authentification (rôle admin)
 
@@ -296,8 +298,9 @@ CONTENT_TYPES = {
 # ----------------------------- storage helpers -----------------------------
 # NB : mail.json n'est plus utilisé (SMTP vient des variables d'environnement).
 _DATA_FILES = [ARTICLES_FILE, SUBMISSIONS_FILE, SETTINGS_FILE, MEDIA_FILE, GALLERY_FILE,
-               CONTENT_FILE, IMGCONTENT_FILE, SLIDES_FILE, AUTH_FILE, SESSIONS_FILE]
-_LIST_KEYS = {"articles", "submissions", "media", "gallery"}
+               CONTENT_FILE, IMGCONTENT_FILE, SLIDES_FILE, AUTH_FILE, SESSIONS_FILE,
+               COMMENTS_FILE, NEWSLETTER_FILE]
+_LIST_KEYS = {"articles", "submissions", "media", "gallery", "newsletter"}
 
 
 def _default_for(key):
@@ -874,6 +877,9 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/settings":
             settings = _get_settings()
             settings["_emailConfigured"] = _get_mail()["active"]
+            # Permanence du stockage : sans base de données, tout ce que
+            # l'administrateur modifie sera perdu au prochain déploiement.
+            settings["_storagePermanent"] = bool(DB_ENABLED)
             return self._send_json(settings)
 
         if path == "/api/media":
@@ -903,6 +909,19 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send_json({"error": "Non autorisé"}, 401)
             subs = _read_json(SUBMISSIONS_FILE, [])
             return self._send_json(sorted(subs, key=lambda s: s.get("received", ""), reverse=True))
+
+        # Commentaires d'un article (publics, en lecture)
+        m = re.match(r"^/api/comments/([A-Za-z0-9_\-]+)$", path)
+        if m:
+            allc = _read_json(COMMENTS_FILE, {})
+            items = allc.get(m.group(1), []) if isinstance(allc, dict) else []
+            return self._send_json(sorted(items, key=lambda c: c.get("date", "")))
+
+        if path == "/api/newsletter":   # admin-only : liste des inscrits
+            if not self._is_admin():
+                return self._send_json({"error": "Non autorisé"}, 401)
+            subs = _read_json(NEWSLETTER_FILE, [])
+            return self._send_json(sorted(subs, key=lambda s: s.get("date", ""), reverse=True))
 
         return self._send_json({"error": "Not found"}, 404)
 
@@ -954,11 +973,80 @@ class Handler(BaseHTTPRequestHandler):
         if m:
             return self._update_gallery(m.group(1))
 
+        if path == "/api/newsletter":
+            return self._newsletter_signup()
+
+        if path == "/api/comments-delete":       # admin uniquement
+            return self._delete_comment()
+
+        m = re.match(r"^/api/comments/([A-Za-z0-9_\-]+)$", path)
+        if m:
+            return self._add_comment(m.group(1))
+
         m = re.match(r"^/api/(apply|contact)/([a-z0-9\-]+)$", path)
         if m:
             return self._save_submission(category=m.group(1), slug=m.group(2))
 
         self._send_json({"error": "Not found"}, 404)
+
+    # ---- Commentaires d'articles ----
+    def _add_comment(self, article_id):
+        data = self._read_body()
+        if not isinstance(data, dict):
+            return self._send_json({"error": "Requête invalide"}, 400)
+        nom = _clean(data.get("nom"), 80)
+        message = _clean(data.get("message"), 2000)
+        if not nom or not message:
+            return self._send_json({"error": "Votre nom et votre message sont requis."}, 400)
+        if len(message) < 2:
+            return self._send_json({"error": "Message trop court."}, 400)
+        # On ne garde que du texte : aucun HTML n'est stocké ni réaffiché.
+        entry = {
+            "id": uuid.uuid4().hex[:10],
+            "nom": nom,
+            "message": message,
+            "date": datetime.utcnow().isoformat() + "Z",
+        }
+        allc = _read_json(COMMENTS_FILE, {})
+        if not isinstance(allc, dict):
+            allc = {}
+        items = allc.get(article_id) or []
+        if len(items) >= 500:
+            return self._send_json({"error": "Trop de commentaires sur cet article."}, 429)
+        items.append(entry)
+        allc[article_id] = items
+        _write_json(COMMENTS_FILE, allc)
+        print("\n  💬 Nouveau commentaire sur « %s » de %s" % (article_id, nom), flush=True)
+        return self._send_json({"ok": True, "comment": entry}, 201)
+
+    def _delete_comment(self):
+        if not self._is_admin():
+            return self._send_json({"error": "Non autorisé"}, 401)
+        data = self._read_body()
+        article_id = _clean((data or {}).get("article"), 80)
+        cid = _clean((data or {}).get("id"), 40)
+        allc = _read_json(COMMENTS_FILE, {})
+        if not isinstance(allc, dict) or article_id not in allc:
+            return self._send_json({"error": "Introuvable"}, 404)
+        allc[article_id] = [c for c in allc[article_id] if c.get("id") != cid]
+        _write_json(COMMENTS_FILE, allc)
+        return self._send_json({"ok": True})
+
+    # ---- Newsletter (adresses e-mail pour les offres/actualités) ----
+    def _newsletter_signup(self):
+        data = self._read_body()
+        email = _clean((data or {}).get("email"), 200)
+        if not email or not EMAIL_RE.match(email):
+            return self._send_json({"error": "Adresse e-mail invalide."}, 400)
+        subs = _read_json(NEWSLETTER_FILE, [])
+        if not isinstance(subs, list):
+            subs = []
+        if any((s.get("email") or "").lower() == email.lower() for s in subs):
+            return self._send_json({"ok": True, "already": True})   # déjà inscrit : on ne dit rien de plus
+        subs.append({"email": email, "date": datetime.utcnow().isoformat() + "Z"})
+        _write_json(NEWSLETTER_FILE, subs)
+        print("\n  ✉  Nouvelle inscription newsletter : %s" % email, flush=True)
+        return self._send_json({"ok": True}, 201)
 
     def _save_settings(self):
         if not self._is_admin():

@@ -3,7 +3,11 @@
    Live site settings (texts, email, socials, hero photo) come from /api/settings
    and are applied everywhere via applySettings(). */
 (function () {
+  // `data-page` identifie la page de façon UNIQUE (clé des textes modifiables :
+  // deux pages ne doivent jamais partager la même, sinon leurs textes se mélangent).
+  // `data-nav` sert uniquement à surligner l'entrée de menu correspondante.
   const page = document.body.getAttribute("data-page") || "";
+  const navKey = document.body.getAttribute("data-nav") || page;
   const year = new Date().getFullYear();
 
   // Architecture (brief KBO) : les trois pôles du cabinet en tête de navigation,
@@ -33,7 +37,7 @@
             <span></span>
           </button>
           <ul class="nav__links" id="navLinks">
-            ${links.map(l => `<li><a href="${l.href}" class="${page === l.key ? "is-active" : ""}">${l.label}</a></li>`).join("")}
+            ${links.map(l => `<li><a href="${l.href}" class="${navKey === l.key ? "is-active" : ""}">${l.label}</a></li>`).join("")}
           </ul>
         </nav>
       </div>
@@ -93,6 +97,19 @@
             <a href="contact.html">Formulaire de contact</a>
           </div>
         </div>
+
+        <div class="footer__news">
+          <div>
+            <h4>Recevoir nos actualités</h4>
+            <p>Analyses de marché, nouvelles formations et offres — directement par e-mail. Pas de spam, désinscription à tout moment.</p>
+          </div>
+          <form class="footer__news-form" id="newsForm" novalidate>
+            <label class="sr-only" for="newsEmail">Votre adresse e-mail</label>
+            <input type="email" id="newsEmail" name="email" placeholder="votre@email.com" required />
+            <button class="btn btn--primary" type="submit">S'inscrire</button>
+          </form>
+          <span class="form-msg" id="newsMsg"></span>
+        </div>
         <p class="footer__risk">⚠ Le trading et l'investissement comportent un risque de perte en capital. Les contenus de ce site sont fournis à titre pédagogique et informatif ; ils ne constituent ni un conseil en investissement personnalisé, ni une garantie de performance.</p>
         <div class="footer__bottom">
           <span class="footer__copy">© ${year} <span data-text="brandMark">KBO</span> Corporate Finance. Tous droits réservés.</span>
@@ -109,6 +126,36 @@
   const f = document.getElementById("site-footer");
   if (h) h.outerHTML = header;
   if (f) f.outerHTML = footer;
+
+  // ---- Inscription aux actualités (pied de page, toutes les pages) ----
+  (function () {
+    const form = document.getElementById("newsForm");
+    if (!form) return;
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const msg = document.getElementById("newsMsg");
+      const input = document.getElementById("newsEmail");
+      const email = (input.value || "").trim();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+        msg.textContent = "Adresse e-mail invalide."; msg.className = "form-msg err"; return;
+      }
+      const btn = form.querySelector('[type="submit"]');
+      btn.disabled = true;
+      msg.textContent = "Inscription…"; msg.className = "form-msg";
+      fetch("/api/newsletter", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email }),
+      }).then(r => r.json().then(j => ({ ok: r.ok, j })))
+        .then(o => {
+          if (!o.ok) throw new Error(o.j.error || "Erreur");
+          input.value = "";
+          msg.textContent = o.j.already ? "✓ Vous êtes déjà inscrit." : "✓ Merci ! Vous êtes inscrit.";
+          msg.className = "form-msg ok";
+        })
+        .catch(err => { msg.textContent = err.message; msg.className = "form-msg err"; })
+        .finally(() => { btn.disabled = false; });
+    });
+  })();
 
   // ---- Widget WhatsApp flottant (canal réellement utilisé) : présent partout.
   //      Le numéro vient des réglages (s.whatsapp) ; sans numéro, il renvoie
@@ -243,7 +290,7 @@
   }
 
   // ---- Editable free text (biography, service pages, all headings…) ----
-  const EDIT_SELECTOR = "h1,h2,h3,h4,h5,p,li,.eyebrow,.lead,figcaption,blockquote";
+  const EDIT_SELECTOR = "h1,h2,h3,h4,h5,p,li,.eyebrow,.lead,figcaption,blockquote,[data-edit]";
   const pageKey = page || "page";
 
   function domPath(el) {
