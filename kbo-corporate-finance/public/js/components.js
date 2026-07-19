@@ -56,12 +56,12 @@
     <footer class="site-footer">
       <div class="container">
         <div class="footer__grid">
-          <div>
+          <div class="footer__brandcol">
             <a class="brand" href="index.html">
               <span class="brand__mark" data-text="brandMark">KBO</span>
               <span class="brand__sub" data-text="brandSub">corporate finance</span>
             </a>
-            <p class="footer__about" data-text="footerAbout">Obed Kabeya — banquier de marché & trader. Formation, structuration comptable et conseil en investissement, au service d'une finance lucide et exigeante.</p>
+            <p class="footer__about" data-text="footerAbout">Cabinet basé au Bénin : formation en trading et finance de marché, accompagnement des entreprises vers la bancarisation, et conseil en investissement.</p>
             <div class="footer__social">
               ${socialAnchor("linkedin", "LinkedIn")}
               ${socialAnchor("x", "X")}
@@ -71,12 +71,35 @@
               <a href="#" data-email-link aria-label="Email">${ic.mail}</a>
             </div>
           </div>
-        </div>
-        <div class="footer__bottom">
-          <span class="footer__copy">© ${year} <span data-text="brandMark">KBO</span> Corporate Finance — <span data-text="name">Obed Kabeya</span>. Tous droits réservés.</span>
-          <span class="footer__admin">
+          <nav class="footer__col" aria-label="Explorer le site">
+            <h4>Explorer</h4>
+            <a href="formation.html">Formation</a>
+            <a href="accompagnement.html">Accompagnement</a>
+            <a href="conseil.html">Conseil</a>
+            <a href="ressources.html">Ressources</a>
+            <a href="faq.html">FAQ</a>
+            <a href="personnel.html">À propos</a>
+          </nav>
+          <nav class="footer__col" aria-label="Informations légales">
+            <h4>Informations</h4>
+            <a href="mentions-legales.html">Mentions légales</a>
+            <a href="confidentialite.html">Confidentialité</a>
+            <a href="risques.html">Avertissement sur les risques</a>
+          </nav>
+          <div class="footer__col">
+            <h4>Contact</h4>
             <a href="#" data-email-link data-email-text>e-mail</a>
-            <!-- Accès admin volontairement invisible : tapez 5x sur le logo, ou allez sur /admin.html -->
+            <a href="contact.html" data-wa-link data-wa-msg="Bonjour, je vous contacte depuis le site KBO Corporate Finance.">WhatsApp</a>
+            <a href="contact.html">Formulaire de contact</a>
+          </div>
+        </div>
+        <p class="footer__risk">⚠ Le trading et l'investissement comportent un risque de perte en capital. Les contenus de ce site sont fournis à titre pédagogique et informatif ; ils ne constituent ni un conseil en investissement personnalisé, ni une garantie de performance.</p>
+        <div class="footer__bottom">
+          <span class="footer__copy">© ${year} <span data-text="brandMark">KBO</span> Corporate Finance. Tous droits réservés.</span>
+          <span class="footer__admin">
+            <a href="mentions-legales.html">Mentions légales</a>
+            <a href="confidentialite.html">Confidentialité</a>
+            <!-- Accès admin volontairement invisible : tapez 5x sur le copyright, ou allez sur /admin.html -->
           </span>
         </div>
       </div>
@@ -152,11 +175,32 @@
   }, { threshold: 0.12 });
   document.querySelectorAll(".reveal, .reveal-line").forEach(el => obs.observe(el));
 
+  // ---- Thème (couleurs) : applique les surcharges de design sur :root. ----
+  // Chaque réglage pilote une ou plusieurs variables CSS.
+  const THEME_VARS = {
+    primaire: ["--navy", "--blue"],
+    accent:   ["--gold"],
+    texte:    ["--ink", "--black"],
+    fond:     ["--paper"],
+    fonce:    ["--navy-deep"],
+  };
+  function applyTheme(theme) {
+    const root = document.documentElement;
+    Object.keys(THEME_VARS).forEach(k => {
+      const val = theme && theme[k];
+      THEME_VARS[k].forEach(cssVar => {
+        if (val) root.style.setProperty(cssVar, val);
+        else root.style.removeProperty(cssVar);
+      });
+    });
+  }
+
   // ---- Live settings: applied to every page ----
   let currentSettings = null;
   function applySettings(s) {
     if (!s) return;
     currentSettings = s;
+    applyTheme(s.theme);
     const texts = s.texts || {};
     document.querySelectorAll("[data-text]").forEach(el => {
       const v = texts[el.getAttribute("data-text")];
@@ -325,6 +369,7 @@
 
   window.KBO = window.KBO || {};
   window.KBO.applySettings = applySettings;
+  window.KBO.applyTheme = applyTheme;
   window.KBO.getSettings = () => currentSettings;
   window.KBO.editableElements = editableElements;
   window.KBO.editableKey = editableKey;

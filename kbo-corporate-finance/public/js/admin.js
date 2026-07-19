@@ -74,6 +74,11 @@
     document.querySelectorAll("[data-textkey]").forEach(el => { el.value = texts[el.dataset.textkey] || ""; });
     $("email").value = s.email || "";
     if ($("whatsapp")) $("whatsapp").value = s.whatsapp || "";
+    const theme = s.theme || {};
+    document.querySelectorAll("[data-themekey]").forEach(el => {
+      const v = theme[el.dataset.themekey];
+      if (v) el.value = v;                     // sinon on garde la couleur d'origine (attribut value)
+    });
     const social = s.social || {};
     SOCIAL.forEach(k => { $(k).value = social[k] || ""; });
     currentPhoto = s.photo || "images/portrait.svg";
@@ -108,7 +113,8 @@
     }
     const texts = {}; document.querySelectorAll("[data-textkey]").forEach(el => { texts[el.dataset.textkey] = el.value.trim(); });
     const social = {}; SOCIAL.forEach(k => { social[k] = $(k).value.trim(); });
-    const payload = { email: $("email").value.trim(), whatsapp: ($("whatsapp") ? $("whatsapp").value.trim() : ""), photo: currentPhoto, social, texts };
+    const theme = {}; document.querySelectorAll("[data-themekey]").forEach(el => { theme[el.dataset.themekey] = el.value; });
+    const payload = { email: $("email").value.trim(), whatsapp: ($("whatsapp") ? $("whatsapp").value.trim() : ""), theme, photo: currentPhoto, social, texts };
     $("saveBtn").disabled = true; $("saveMsg").textContent = "Enregistrement…"; $("saveMsg").className = "form-msg";
     fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
       .then(r => r.json().then(j => ({ ok: r.ok, j })))
@@ -405,6 +411,20 @@
       $("pwMsg").textContent = "✓ Mot de passe changé."; $("pwMsg").className = "form-msg ok";
       showToast("Mot de passe administrateur mis à jour");
     }).catch(err => { $("pwMsg").textContent = err.message; $("pwMsg").className = "form-msg err"; });
+  });
+
+  // ---------- Design & couleurs : aperçu en direct + réinitialisation ----------
+  function currentThemeFromInputs() {
+    const t = {}; document.querySelectorAll("[data-themekey]").forEach(el => { t[el.dataset.themekey] = el.value; });
+    return t;
+  }
+  document.querySelectorAll("[data-themekey]").forEach(el => {
+    el.addEventListener("input", () => { if (window.KBO && window.KBO.applyTheme) window.KBO.applyTheme(currentThemeFromInputs()); });
+  });
+  if ($("themeReset")) $("themeReset").addEventListener("click", () => {
+    document.querySelectorAll("[data-themekey]").forEach(el => { el.value = el.getAttribute("value"); });
+    if (window.KBO && window.KBO.applyTheme) window.KBO.applyTheme({});   // retire les surcharges
+    showToast("Couleurs réinitialisées — cliquez Enregistrer pour appliquer partout");
   });
 
   // hook into dashboard load + settings fill

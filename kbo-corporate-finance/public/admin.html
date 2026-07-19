@@ -53,6 +53,7 @@
           <button class="admin-tab is-active" data-tab="identite">Identité &amp; Accueil</button>
           <button class="admin-tab" data-tab="textes">Textes des pages</button>
           <button class="admin-tab" data-tab="reseaux">Réseaux &amp; Contact</button>
+          <button class="admin-tab" data-tab="design">Design &amp; couleurs</button>
           <button class="admin-tab" data-tab="blog">Blog &amp; Histoires</button>
           <button class="admin-tab" data-tab="galerie">Galerie</button>
           <button class="admin-tab" data-tab="medias">Médias</button>
@@ -163,6 +164,22 @@
                   <div class="field field--full"><label for="instagram">Instagram</label><input type="text" inputmode="url" id="instagram" placeholder="instagram.com/…" /></div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- Design & couleurs -->
+          <div class="tabpanel" data-panel="design">
+            <div class="form-wrap">
+              <h3>Couleurs du site</h3>
+              <p class="muted" style="font-size:.92rem">Changez les couleurs principales. L'aperçu se met à jour en direct ; cliquez « Enregistrer » en bas pour appliquer partout. « Réinitialiser » revient aux couleurs d'origine du logo.</p>
+              <div class="theme-grid">
+                <div class="theme-field"><label for="th_primaire">Couleur principale (bleu de marque)</label><input type="color" id="th_primaire" data-themekey="primaire" value="#1e3b8b" /></div>
+                <div class="theme-field"><label for="th_accent">Accent (or)</label><input type="color" id="th_accent" data-themekey="accent" value="#b8934a" /></div>
+                <div class="theme-field"><label for="th_texte">Texte</label><input type="color" id="th_texte" data-themekey="texte" value="#14161c" /></div>
+                <div class="theme-field"><label for="th_fond">Fond des pages</label><input type="color" id="th_fond" data-themekey="fond" value="#fbfbfa" /></div>
+                <div class="theme-field"><label for="th_fonce">Bleu foncé (sections &amp; pied de page)</label><input type="color" id="th_fonce" data-themekey="fonce" value="#16255c" /></div>
+              </div>
+              <div style="margin-top:1.2rem"><button type="button" class="btn btn--ghost" id="themeReset">Réinitialiser les couleurs d'origine</button></div>
             </div>
           </div>
 

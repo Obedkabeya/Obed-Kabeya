@@ -14,23 +14,18 @@
 <body data-page="accueil">
   <div id="site-header"></div>
 
-  <!-- HERO : preuve immédiate que le cabinet manipule de vrais chiffres -->
-  <section class="hero">
-    <div class="container">
-      <div class="hero__grid">
-        <div class="hero__content reveal">
-          <p class="hero__role" data-text="heroEyebrow">KBO Corporate Finance · Bénin</p>
-          <h1>La finance, rendue <span class="accent">lisible</span> et <span class="accent">accessible</span>.</h1>
-          <hr class="divider" />
-          <p class="lead" data-text="homeHeroLead">Former aux marchés, aider les entreprises à devenir bancables, conseiller les investisseurs. Trois métiers, une même exigence : comprendre avant d'agir, structurer avant de risquer.</p>
-          <div class="hero__cta">
-            <a class="btn btn--primary" href="formation.html">Découvrir les formations <span class="arrow">→</span></a>
-            <a class="btn btn--ghost" href="accompagnement.html#diagnostic">Tester ma bancabilité</a>
-          </div>
-        </div>
-        <div class="hero__portrait reveal" data-slot="accueil-hero">
-          <img src="images/markets.svg" alt="KBO Corporate Finance" />
-        </div>
+  <!-- HERO avec image de fond éditable + dégradé foncé -->
+  <section class="page-intro hero-bg hero-bg--tall">
+    <div class="hero-bg__media" data-slot="accueil-hero"><img src="images/markets.svg" alt="" /></div>
+    <div class="hero-bg__scrim"></div>
+    <div class="container hero-bg__content">
+      <p class="hero__role eyebrow" data-text="heroEyebrow">KBO Corporate Finance · Bénin</p>
+      <h1>La finance, rendue <span class="accent">lisible</span> et <span class="accent">accessible</span>.</h1>
+      <hr class="divider" />
+      <p class="lead" data-text="homeHeroLead" style="max-width:640px">Former aux marchés, aider les entreprises à devenir bancables, conseiller les investisseurs. Trois métiers, une même exigence : comprendre avant d'agir, structurer avant de risquer.</p>
+      <div class="hero__cta">
+        <a class="btn btn--primary" href="formation.html">Découvrir les formations <span class="arrow">→</span></a>
+        <a class="btn btn--light" href="accompagnement.html#diagnostic">Tester ma bancabilité</a>
       </div>
     </div>
   </section>

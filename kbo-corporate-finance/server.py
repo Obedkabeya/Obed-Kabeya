@@ -246,6 +246,7 @@ DEFAULT_TEXTS = {
 DEFAULT_SETTINGS = {
     "email": "Obedkabeya1996@gmail.com",
     "whatsapp": "",   # numéro international sans « + » (ex. 22990112233) — widget WhatsApp
+    "theme": {},      # surcharges de couleurs (design) : primaire, accent, texte, fond, fonce
     "presentation": DEFAULT_TEXTS["presentation"],
     "photo": "images/portrait.svg",
     "social": {
@@ -394,9 +395,11 @@ def _get_settings():
     for key, default in DEFAULT_SETTINGS["images"].items():
         images[key] = images_in.get(key) or default
 
+    theme = data.get("theme") if isinstance(data.get("theme"), dict) else {}
     merged = {
         "email": data.get("email") or DEFAULT_SETTINGS["email"],
         "whatsapp": (data.get("whatsapp") or DEFAULT_SETTINGS.get("whatsapp", "")),
+        "theme": theme,
         "presentation": texts["presentation"],
         "photo": data.get("photo") or DEFAULT_SETTINGS["photo"],
         "social": {},
@@ -989,9 +992,17 @@ class Handler(BaseHTTPRequestHandler):
             images[key] = _clean(images_in.get(key), 400) or current["images"].get(key, DEFAULT_SETTINGS["images"][key])
 
         wa = re.sub(r"[^\d]", "", (data.get("whatsapp") or current.get("whatsapp") or ""))[:20]
+        # Thème (design) : on ne garde que des couleurs hexadécimales valides.
+        theme_in = data.get("theme") if isinstance(data.get("theme"), dict) else current.get("theme", {})
+        theme = {}
+        for k in ("primaire", "accent", "texte", "fond", "fonce"):
+            v = str((theme_in or {}).get(k, "")).strip()
+            if re.match(r"^#[0-9a-fA-F]{6}$", v):
+                theme[k] = v.lower()
         settings = {
             "email": email,
             "whatsapp": wa,
+            "theme": theme,
             "presentation": texts["presentation"],
             "photo": _clean(data.get("photo"), 400) or current["photo"],
             "social": social,
@@ -1411,12 +1422,18 @@ class Handler(BaseHTTPRequestHandler):
                     return self._serve_bytes_ranged(data, mime)
                 return self._send_bytes(data, mime, cache=True)
 
+        status = 200
         if os.path.isdir(full):
             full = os.path.join(full, "index.html")
         if not os.path.isfile(full):
-            # SPA-ish fallback: serve 404 page if present, else plain 404
-            self.send_error(404, "Fichier introuvable")
-            return
+            # Page 404 personnalisée si présente, sinon 404 brut.
+            nf = os.path.join(PUBLIC_DIR, "404.html")
+            if os.path.isfile(nf):
+                full = nf
+                status = 404
+            else:
+                self.send_error(404, "Fichier introuvable")
+                return
 
         base = os.path.basename(full)
         is_admin = self._is_admin()
@@ -1440,15 +1457,18 @@ class Handler(BaseHTTPRequestHandler):
             self.send_error(404, "Fichier introuvable")
             return
 
-        # Rich link previews: inject Open Graph tags when an article is shared.
+        # Rich link previews: inject Open Graph tags when an article is shared,
+        # sinon des balises OG par défaut dérivées du <title> et de la description.
         if base == "article.html":
             body = self._inject_article_og(body)
+        elif ext == ".html":
+            body = self._inject_default_og(body)
 
         # Injection du rôle + de l'éditeur, uniquement pour l'administrateur connecté.
         if ext == ".html":
             body = self._inject_role(body, is_admin, base)
 
-        self.send_response(200)
+        self.send_response(status)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
         if ext == ".html":
@@ -1476,6 +1496,37 @@ class Handler(BaseHTTPRequestHandler):
         # L'éditeur en ligne (pages publiques, admin connecté) se charge en fin de body.
         if is_admin and base != "admin.html":
             text = text.replace("</body>", '<script src="js/editor.js"></script></body>', 1)
+        return text.encode("utf-8")
+
+    def _inject_default_og(self, body):
+        """Balises Open Graph / Twitter par défaut, dérivées du <title> et de la
+        meta description de la page (pour un partage propre sur les réseaux)."""
+        try:
+            text = body.decode("utf-8")
+        except UnicodeDecodeError:
+            return body
+        if "og:title" in text:
+            return body
+        def grab(pat):
+            m = re.search(pat, text, re.I | re.S)
+            return m.group(1).strip() if m else ""
+        title = grab(r"<title>(.*?)</title>")
+        if not title:
+            return body
+        desc = grab(r'<meta\s+name="description"\s+content="(.*?)"')
+        def esc(s):
+            return (s.replace("&", "&amp;").replace('"', "&quot;")
+                     .replace("<", "&lt;").replace(">", "&gt;"))
+        tags = (
+            '<meta property="og:type" content="website">'
+            '<meta property="og:site_name" content="KBO Corporate Finance">'
+            '<meta property="og:title" content="%s">'
+            '<meta property="og:description" content="%s">'
+            '<meta name="twitter:card" content="summary">'
+            '<meta name="twitter:title" content="%s">'
+            '<meta name="twitter:description" content="%s">'
+        ) % (esc(title), esc(desc), esc(title), esc(desc))
+        text = text.replace("</head>", tags + "</head>", 1)
         return text.encode("utf-8")
 
     def _inject_article_og(self, body):
