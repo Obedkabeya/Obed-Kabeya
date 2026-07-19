@@ -59,6 +59,7 @@ IMGCONTENT_FILE = os.path.join(DATA_DIR, "imgcontent.json")  # remplacements d'i
 SLIDES_FILE = os.path.join(DATA_DIR, "slides.json")          # carrousels d'images par emplacement
 COMMENTS_FILE = os.path.join(DATA_DIR, "comments.json")      # commentaires des articles
 NEWSLETTER_FILE = os.path.join(DATA_DIR, "newsletter.json")  # adresses e-mail (offres/actualités)
+STATS_FILE = os.path.join(DATA_DIR, "stats.json")            # fréquentation (anonyme, sans cookie)
 AUTH_FILE = os.path.join(DATA_DIR, "auth.json")            # mot de passe admin (haché)
 SESSIONS_FILE = os.path.join(DATA_DIR, "sessions.json")   # sessions d'authentification (rôle admin)
 
@@ -299,8 +300,43 @@ CONTENT_TYPES = {
 # NB : mail.json n'est plus utilisé (SMTP vient des variables d'environnement).
 _DATA_FILES = [ARTICLES_FILE, SUBMISSIONS_FILE, SETTINGS_FILE, MEDIA_FILE, GALLERY_FILE,
                CONTENT_FILE, IMGCONTENT_FILE, SLIDES_FILE, AUTH_FILE, SESSIONS_FILE,
-               COMMENTS_FILE, NEWSLETTER_FILE]
+               COMMENTS_FILE, NEWSLETTER_FILE, STATS_FILE]
 _LIST_KEYS = {"articles", "submissions", "media", "gallery", "newsletter"}
+
+
+def _record_view(rel_path, referer=""):
+    """Compte une visite de page — de façon ANONYME : aucune adresse IP, aucun
+    cookie, aucune donnée personnelle. On ne garde qu'un total par jour et par
+    page (et d'où vient le visiteur), ce qui suffit à piloter le site."""
+    try:
+        stats = _read_json(STATS_FILE, {})
+        if not isinstance(stats, dict):
+            stats = {}
+        day = datetime.utcnow().strftime("%Y-%m-%d")
+        days = stats.setdefault("days", {})
+        entry = days.setdefault(day, {"views": 0, "pages": {}, "sources": {}})
+        entry["views"] = entry.get("views", 0) + 1
+        entry.setdefault("pages", {})
+        entry["pages"][rel_path] = entry["pages"].get(rel_path, 0) + 1
+        # Provenance : on ne retient que le nom de domaine (ex. google.com)
+        src = "direct"
+        if referer:
+            try:
+                host = urlparse(referer).netloc.lower()
+                if host and host not in ("", "localhost") and not host.startswith("127."):
+                    src = host
+            except Exception:
+                src = "direct"
+        entry.setdefault("sources", {})
+        entry["sources"][src] = entry["sources"].get(src, 0) + 1
+        stats["total"] = stats.get("total", 0) + 1
+        # On ne conserve que les 90 derniers jours
+        if len(days) > 90:
+            for old in sorted(days.keys())[:-90]:
+                days.pop(old, None)
+        _write_json(STATS_FILE, stats)
+    except Exception:
+        pass    # la fréquentation ne doit jamais casser l'affichage du site
 
 
 def _default_for(key):
@@ -923,6 +959,29 @@ class Handler(BaseHTTPRequestHandler):
             subs = _read_json(NEWSLETTER_FILE, [])
             return self._send_json(sorted(subs, key=lambda s: s.get("date", ""), reverse=True))
 
+        if path == "/api/stats":        # admin-only : fréquentation du site
+            if not self._is_admin():
+                return self._send_json({"error": "Non autorisé"}, 401)
+            stats = _read_json(STATS_FILE, {})
+            days = stats.get("days", {}) if isinstance(stats, dict) else {}
+            last = sorted(days.keys())[-30:]
+            pages, sources, per_day = {}, {}, []
+            for d in last:
+                e = days.get(d, {})
+                per_day.append({"date": d, "views": e.get("views", 0)})
+                for k, v in (e.get("pages") or {}).items():
+                    pages[k] = pages.get(k, 0) + v
+                for k, v in (e.get("sources") or {}).items():
+                    sources[k] = sources.get(k, 0) + v
+            top = lambda d: sorted(d.items(), key=lambda kv: kv[1], reverse=True)[:10]
+            return self._send_json({
+                "total": stats.get("total", 0) if isinstance(stats, dict) else 0,
+                "days": per_day,
+                "last30": sum(x["views"] for x in per_day),
+                "topPages": [{"page": k, "views": v} for k, v in top(pages)],
+                "topSources": [{"source": k, "views": v} for k, v in top(sources)],
+            })
+
         return self._send_json({"error": "Not found"}, 404)
 
     # ---- API: POST ----
@@ -994,10 +1053,11 @@ class Handler(BaseHTTPRequestHandler):
         data = self._read_body()
         if not isinstance(data, dict):
             return self._send_json({"error": "Requête invalide"}, 400)
-        nom = _clean(data.get("nom"), 80)
+        # Le nom est FACULTATIF : on respecte l'anonymat de ceux qui le souhaitent.
+        nom = _clean(data.get("nom"), 80) or "Anonyme"
         message = _clean(data.get("message"), 2000)
-        if not nom or not message:
-            return self._send_json({"error": "Votre nom et votre message sont requis."}, 400)
+        if not message:
+            return self._send_json({"error": "Votre commentaire est vide."}, 400)
         if len(message) < 2:
             return self._send_json({"error": "Message trop court."}, 400)
         # On ne garde que du texte : aucun HTML n'est stocké ni réaffiché.
@@ -1555,6 +1615,10 @@ class Handler(BaseHTTPRequestHandler):
         # Injection du rôle + de l'éditeur, uniquement pour l'administrateur connecté.
         if ext == ".html":
             body = self._inject_role(body, is_admin, base)
+            # Fréquentation : on ne compte que les visiteurs (pas vos propres
+            # visites en tant qu'administrateur), et jamais les pages privées.
+            if status == 200 and not is_admin and base not in ("admin.html", "parametres.html"):
+                _record_view("/" + rel, self.headers.get("Referer", "") or "")
 
         self.send_response(status)
         self.send_header("Content-Type", ctype)

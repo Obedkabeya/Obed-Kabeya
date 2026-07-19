@@ -32,14 +32,14 @@
           <h4 style="margin-bottom:.8rem">Laisser un commentaire</h4>
           <form id="commentForm">
             <div class="form-grid">
-              <div class="field field--full"><label for="c_nom">Votre nom <span class="req">*</span></label><input id="c_nom" name="nom" type="text" maxlength="80" required /></div>
               <div class="field field--full"><label for="c_msg">Votre commentaire <span class="req">*</span></label><textarea id="c_msg" name="message" maxlength="2000" required placeholder="Partagez votre réaction ou votre question."></textarea></div>
+              <div class="field field--full"><label for="c_nom">Votre nom <span class="muted" style="font-weight:400">(facultatif)</span></label><input id="c_nom" name="nom" type="text" maxlength="80" placeholder="Laissez vide pour rester anonyme" /></div>
             </div>
             <div class="form-actions">
               <button class="btn btn--primary" type="submit">Publier <span class="arrow">→</span></button>
               <span class="form-msg" id="commentMsg"></span>
             </div>
-            <p class="form-note">Votre nom et votre commentaire seront visibles publiquement. Aucune adresse e-mail n'est demandée.</p>
+            <p class="form-note">Votre commentaire est public. Le nom est facultatif — sans nom, il s'affichera « Anonyme ». Aucune adresse e-mail n'est demandée.</p>
           </form>
         </div>
       </div>

@@ -55,6 +55,7 @@
         </div>
         <nav class="admin-tabs" id="adminTabs" aria-label="Sections d'administration">
           <button class="admin-tab is-active" data-tab="identite">Identité &amp; Accueil</button>
+          <button class="admin-tab" data-tab="boite">📥 Messages &amp; contacts</button>
           <button class="admin-tab" data-tab="contenu">Tous les textes</button>
           <button class="admin-tab" data-tab="textes">Accueil — raccourcis</button>
           <button class="admin-tab" data-tab="reseaux">Réseaux &amp; Contact</button>
@@ -193,6 +194,35 @@
             <span class="form-msg" id="saveMsg"></span>
           </div>
         </form>
+
+        <!-- ===== BOÎTE DE RÉCEPTION / CONTACTS / FRÉQUENTATION ===== -->
+        <div class="tabpanel" data-panel="boite">
+          <div class="form-wrap">
+            <h3>Messages reçus <span class="count-pill" id="inboxCount">0</span></h3>
+            <p class="muted" style="font-size:.92rem">Toutes les candidatures, demandes de contact et diagnostics arrivent ici — <strong>même si l'e-mail ne fonctionne pas</strong>. Rien ne se perd. Cliquez sur un message pour le déplier.</p>
+            <div class="form-actions" style="margin-bottom:1rem">
+              <button type="button" class="btn btn--ghost" id="inboxReload">Actualiser</button>
+            </div>
+            <div id="inboxList"></div>
+          </div>
+
+          <div class="form-wrap" style="margin-top:1.6rem">
+            <h3>Inscrits aux actualités <span class="count-pill" id="newsCount">0</span></h3>
+            <p class="muted" style="font-size:.92rem">Les adresses laissées dans le pied de page arrivent ici. Pour un envoi groupé&nbsp;: copiez les adresses et collez-les dans le champ <strong>Cci</strong> de votre messagerie (ainsi personne ne voit les adresses des autres), ou téléchargez le fichier CSV pour un outil d'e-mailing.</p>
+            <div class="form-actions" style="margin-bottom:1rem">
+              <button type="button" class="btn btn--primary" id="newsCopy">Copier toutes les adresses</button>
+              <button type="button" class="btn btn--ghost" id="newsCsv">Télécharger en CSV</button>
+              <span class="form-msg" id="newsMsgAdmin"></span>
+            </div>
+            <div id="newsList"></div>
+          </div>
+
+          <div class="form-wrap" style="margin-top:1.6rem">
+            <h3>Fréquentation du site</h3>
+            <p class="muted" style="font-size:.92rem">Comptage <strong>anonyme</strong> : aucune donnée personnelle, aucun cookie. Vos propres visites (connecté) ne sont pas comptées.</p>
+            <div id="statsBox"></div>
+          </div>
+        </div>
 
         <!-- ===== TOUS LES TEXTES DU SITE ===== -->
         <div class="tabpanel" data-panel="contenu">
@@ -376,5 +406,6 @@
   <script src="js/components.js"></script>
   <script src="js/admin.js"></script>
   <script src="js/admin-content.js"></script>
+  <script src="js/admin-inbox.js"></script>
 </body>
 </html>

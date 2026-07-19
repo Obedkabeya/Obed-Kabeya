@@ -153,7 +153,7 @@
       e.preventDefault();
       const msg = document.getElementById("commentMsg");
       const nom = form.nom.value.trim(), message = form.message.value.trim();
-      if (!nom || !message) { msg.textContent = "Votre nom et votre message sont requis."; msg.className = "form-msg err"; return; }
+      if (!message) { msg.textContent = "Écrivez votre commentaire."; msg.className = "form-msg err"; return; }
       const btn = form.querySelector('[type="submit"]');
       btn.disabled = true;
       msg.textContent = "Envoi…"; msg.className = "form-msg";

@@ -33,11 +33,13 @@
   <!-- BANDE DE STATISTIQUES (compteurs animés) -->
   <section class="section section--ink" style="padding-block:clamp(40px,6vw,72px)">
     <div class="container">
+      <!-- Chiffres ET libellés modifiables : écrivez simplement la valeur voulue
+           (ex. « 12+ »), l'animation s'y adapte toute seule. -->
       <div class="stats reveal">
-        <div class="stat"><div class="stat__value" data-count="10" data-suffix="+">0</div><div class="stat__label">années sur les marchés</div></div>
-        <div class="stat"><div class="stat__value" data-count="3">0</div><div class="stat__label">pôles d'expertise</div></div>
-        <div class="stat"><div class="stat__value" data-count="8">0</div><div class="stat__label">pays — accès au marché régional (BRVM)</div></div>
-        <div class="stat"><div class="stat__value" data-count="0"><span class="suffix">0</span></div><div class="stat__label">promesse de gain — que de la méthode</div></div>
+        <div class="stat"><div class="stat__value" data-edit data-countup>10+</div><div class="stat__label" data-edit>années sur les marchés</div></div>
+        <div class="stat"><div class="stat__value" data-edit data-countup>3</div><div class="stat__label" data-edit>pôles d'expertise</div></div>
+        <div class="stat"><div class="stat__value" data-edit data-countup>8</div><div class="stat__label" data-edit>pays — accès au marché régional (BRVM)</div></div>
+        <div class="stat"><div class="stat__value" data-edit data-countup>0</div><div class="stat__label" data-edit>promesse de gain — que de la méthode</div></div>
       </div>
     </div>
   </section>
@@ -127,27 +129,50 @@
   <div id="site-footer"></div>
   <script src="js/components.js"></script>
   <script>
-    // Compteurs animés : lancent le comptage quand la bande entre dans l'écran.
+    // Compteurs animés. La valeur affichée EST la source : si vous écrivez
+    // « 12+ » dans le tableau de bord, le compteur monte jusqu'à 12 puis garde
+    // le « + ». Rien d'autre à régler.
     (function () {
       var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      var started = false;
+
       function run(el) {
-        var to = parseInt(el.getAttribute("data-count"), 10) || 0;
-        var suffix = el.getAttribute("data-suffix") || "";
-        if (reduce || to === 0) { el.innerHTML = to + (suffix ? '<span class="suffix">' + suffix + '</span>' : ''); return; }
+        if (el.__done) return;
+        var raw = (el.__raw != null ? el.__raw : el.textContent).trim();
+        el.__raw = raw;                                   // texte d'origine mémorisé
+        var m = raw.match(/(\d[\d\s.,]*)/);
+        if (!m) { el.__done = true; return; }             // pas de chiffre : on laisse tel quel
+        var num = parseInt(m[1].replace(/[^\d]/g, ""), 10);
+        if (isNaN(num)) { el.__done = true; return; }
+        var before = raw.slice(0, m.index);
+        var after = raw.slice(m.index + m[1].length);
+        function paint(v) {
+          el.innerHTML = before + v + (after ? '<span class="suffix">' + after + "</span>" : "");
+        }
+        el.__done = true;
+        if (reduce || num === 0) { paint(num); return; }
         var start = null, dur = 1200;
         function step(ts) {
           if (!start) start = ts;
           var p = Math.min((ts - start) / dur, 1);
-          var val = Math.round((1 - Math.pow(1 - p, 3)) * to);
-          el.innerHTML = val + (suffix ? '<span class="suffix">' + suffix + '</span>' : '');
+          paint(Math.round((1 - Math.pow(1 - p, 3)) * num));
           if (p < 1) requestAnimationFrame(step);
         }
         requestAnimationFrame(step);
       }
-      var obs = new IntersectionObserver(function (entries) {
-        entries.forEach(function (en) { if (en.isIntersecting) { run(en.target); obs.unobserve(en.target); } });
-      }, { threshold: 0.4 });
-      document.querySelectorAll(".stat__value[data-count]").forEach(function (el) { obs.observe(el); });
+
+      function arm() {
+        if (started) return; started = true;
+        var obs = new IntersectionObserver(function (entries) {
+          entries.forEach(function (en) { if (en.isIntersecting) { run(en.target); obs.unobserve(en.target); } });
+        }, { threshold: 0.4 });
+        document.querySelectorAll(".stat__value[data-countup]").forEach(function (el) { obs.observe(el); });
+      }
+
+      // On attend que les textes personnalisés soient appliqués, sinon on
+      // animerait l'ancienne valeur. Filet de sécurité si l'API ne répond pas.
+      document.addEventListener("kbo:content", arm);
+      setTimeout(arm, 1500);
     })();
   </script>
 </body>

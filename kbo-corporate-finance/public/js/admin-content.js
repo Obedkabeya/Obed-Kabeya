@@ -13,7 +13,6 @@
     { file: "formation.html",         label: "Formation — choix des parcours" },
     { file: "formation-trading.html", label: "Formation — Trading (détail)" },
     { file: "formation-finance.html", label: "Formation — Finance de marché (détail)" },
-    { file: "paiement.html",          label: "Formation — adhésion Trading" },
     { file: "candidature.html",       label: "Formation — candidature" },
     { file: "accompagnement.html",    label: "Accompagnement des entreprises" },
     { file: "conseil.html",           label: "Conseil en investissement" },
