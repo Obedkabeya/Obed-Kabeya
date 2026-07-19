@@ -60,6 +60,10 @@ SLIDES_FILE = os.path.join(DATA_DIR, "slides.json")          # carrousels d'imag
 COMMENTS_FILE = os.path.join(DATA_DIR, "comments.json")      # commentaires des articles
 NEWSLETTER_FILE = os.path.join(DATA_DIR, "newsletter.json")  # adresses e-mail (offres/actualités)
 STATS_FILE = os.path.join(DATA_DIR, "stats.json")            # fréquentation (anonyme, sans cookie)
+# Réglages e-mail saisis depuis le tableau de bord (adresse + mot de passe
+# d'application). Ce fichier est dans .gitignore et n'est JAMAIS livré dans le
+# zip : le mot de passe ne peut donc pas se retrouver sur GitHub.
+MAIL_FILE = os.path.join(DATA_DIR, "mail.json")
 AUTH_FILE = os.path.join(DATA_DIR, "auth.json")            # mot de passe admin (haché)
 SESSIONS_FILE = os.path.join(DATA_DIR, "sessions.json")   # sessions d'authentification (rôle admin)
 
@@ -300,7 +304,7 @@ CONTENT_TYPES = {
 # NB : mail.json n'est plus utilisé (SMTP vient des variables d'environnement).
 _DATA_FILES = [ARTICLES_FILE, SUBMISSIONS_FILE, SETTINGS_FILE, MEDIA_FILE, GALLERY_FILE,
                CONTENT_FILE, IMGCONTENT_FILE, SLIDES_FILE, AUTH_FILE, SESSIONS_FILE,
-               COMMENTS_FILE, NEWSLETTER_FILE, STATS_FILE]
+               COMMENTS_FILE, NEWSLETTER_FILE, STATS_FILE, MAIL_FILE]
 _LIST_KEYS = {"articles", "submissions", "media", "gallery", "newsletter"}
 
 
@@ -600,22 +604,36 @@ def _destroy_session(token):
 def _mail_env():
     """Lit les variables d'e-mail depuis l'environnement À CHAQUE APPEL
     (et pas seulement au démarrage) — indispensable pour Railway."""
+    # Ce que l'administrateur a saisi dans le tableau de bord est PRIORITAIRE
+    # sur les variables d'environnement : c'est son choix explicite.
+    cfg = _read_json(MAIL_FILE, {})
+    if not isinstance(cfg, dict):
+        cfg = {}
+
+    def pick(cfg_key, env_key, default=""):
+        v = str(cfg.get(cfg_key, "") or "").strip()
+        return v or os.environ.get(env_key, default).strip()
+
     try:
-        smtp_port = int(os.environ.get("SMTP_PORT", "465"))
+        smtp_port = int(str(cfg.get("port") or os.environ.get("SMTP_PORT", "465")))
     except ValueError:
         smtp_port = 465
-    smtp_user = os.environ.get("SMTP_USER", "").strip()
+    smtp_user = pick("user", "SMTP_USER")
+    smtp_pass = str(cfg.get("pass", "") or "") or os.environ.get("SMTP_PASS", "")
     return {
         "brevo": os.environ.get("BREVO_API_KEY", "").strip(),
         "sendgrid": os.environ.get("SENDGRID_API_KEY", "").strip(),
-        "smtp_host": os.environ.get("SMTP_HOST", "smtp.gmail.com").strip(),
+        "smtp_host": pick("host", "SMTP_HOST", "smtp.gmail.com") or "smtp.gmail.com",
         "smtp_port": smtp_port,
         "smtp_user": smtp_user,
-        "smtp_pass": os.environ.get("SMTP_PASS", ""),
-        "from": (os.environ.get("MAIL_FROM", "").strip()
+        "smtp_pass": smtp_pass,
+        "from": (str(cfg.get("from", "") or "").strip()
+                 or os.environ.get("MAIL_FROM", "").strip()
                  or os.environ.get("SMTP_FROM", "").strip()
                  or smtp_user),
-        "from_name": os.environ.get("MAIL_FROM_NAME", "").strip() or "KBO Corporate Finance",
+        "from_name": (str(cfg.get("from_name", "") or "").strip()
+                      or os.environ.get("MAIL_FROM_NAME", "").strip()
+                      or "KBO Corporate Finance"),
     }
 
 
@@ -757,19 +775,29 @@ def _send_via_smtp(e, from_email, to_addr, subject, body, reply_to=None):
 
 def _send_email(to_addr, subject, body, reply_to=None):
     """Envoie un e-mail. Renvoie (envoyé: bool, détail: str).
-    Les variables sont relues dans l'environnement à CHAQUE appel.
-    Priorité : Brevo (API HTTP) → SendGrid (API HTTP) → SMTP (secours)."""
+    Priorité : votre boîte e-mail directe (SMTP, ex. Gmail) → Brevo → SendGrid.
+    Le choix explicite de l'administrateur passe donc AVANT tout le reste.
+    Quoi qu'il arrive, le message est déjà enregistré dans le tableau de bord."""
     e = _mail_env()
     from_email = e["from"] or _get_settings().get("email", "")
     from_name = e["from_name"]
+    if e["smtp_host"] and e["smtp_user"] and e["smtp_pass"]:
+        ok, detail = _send_via_smtp(e, from_email, to_addr, subject, body, reply_to)
+        if ok:
+            return True, detail
+        # Si la boîte directe échoue (hébergeur qui bloque le SMTP), on tente
+        # un service de secours éventuellement configuré, plutôt que d'échouer.
+        if e["brevo"]:
+            return _send_via_brevo(e["brevo"], from_email, from_name, to_addr, subject, body, reply_to)
+        if e["sendgrid"]:
+            return _send_via_sendgrid(e["sendgrid"], from_email, from_name, to_addr, subject, body, reply_to)
+        return False, detail
     if e["brevo"]:
         return _send_via_brevo(e["brevo"], from_email, from_name, to_addr, subject, body, reply_to)
     if e["sendgrid"]:
         return _send_via_sendgrid(e["sendgrid"], from_email, from_name, to_addr, subject, body, reply_to)
-    if e["smtp_host"] and e["smtp_user"] and e["smtp_pass"]:
-        return _send_via_smtp(e, from_email, to_addr, subject, body, reply_to)
-    return False, ("Aucun service d'e-mail configuré. Ajoutez BREVO_API_KEY "
-                   "(recommandé sur Railway), ou SENDGRID_API_KEY, ou les variables SMTP.")
+    return False, ("Aucune adresse e-mail configurée. Renseignez votre adresse et "
+                   "votre mot de passe d'application dans « Compte & e-mail ».")
 
 
 def _save_upload(data_url):
@@ -937,8 +965,12 @@ class Handler(BaseHTTPRequestHandler):
             if not self._is_admin():
                 return self._send_json({"error": "Non autorisé"}, 401)
             cfg = _get_mail()
+            # On renvoie l'adresse et le serveur (utiles à l'affichage) mais
+            # JAMAIS le mot de passe : seulement l'information « il est défini ».
             return self._send_json({"provider": cfg["provider"], "active": cfg["active"],
-                                    "from": cfg["from"], "detected": cfg["detected"]})
+                                    "from": cfg["from"], "detected": cfg["detected"],
+                                    "smtpUser": cfg["user"], "smtpHost": cfg["host"],
+                                    "smtpPort": cfg["port"], "hasPassword": bool(cfg["pass"])})
 
         if path == "/api/submissions":  # admin-only inbox
             if not self._is_admin():
@@ -1032,6 +1064,9 @@ class Handler(BaseHTTPRequestHandler):
         if m:
             return self._update_gallery(m.group(1))
 
+        if path == "/api/mailconfig":
+            return self._save_mail_config()
+
         if path == "/api/newsletter":
             return self._newsletter_signup()
 
@@ -1047,6 +1082,47 @@ class Handler(BaseHTTPRequestHandler):
             return self._save_submission(category=m.group(1), slug=m.group(2))
 
         self._send_json({"error": "Not found"}, 404)
+
+    # ---- Réglages e-mail (adresse + mot de passe d'application) ----
+    def _save_mail_config(self):
+        if not self._is_admin():
+            return self._send_json({"error": "Non autorisé"}, 401)
+        data = self._read_body()
+        if not isinstance(data, dict):
+            return self._send_json({"error": "Requête invalide"}, 400)
+
+        current = _read_json(MAIL_FILE, {})
+        if not isinstance(current, dict):
+            current = {}
+
+        if data.get("clear"):                       # bouton « Déconnecter »
+            _write_json(MAIL_FILE, {})
+            return self._send_json({"ok": True, "cleared": True})
+
+        user = _clean(data.get("user"), 200)
+        if user and not EMAIL_RE.match(user):
+            return self._send_json({"error": "Adresse e-mail invalide."}, 400)
+        # Le mot de passe d'application Gmail fait 16 lettres, souvent collé
+        # avec des espaces : on les retire pour éviter une erreur d'authentification.
+        pwd = re.sub(r"\s+", "", str(data.get("pass") or ""))
+        try:
+            port = int(str(data.get("port") or 465))
+        except ValueError:
+            port = 465
+        if port not in (25, 465, 587, 2525):
+            port = 465
+
+        cfg = {
+            "host": _clean(data.get("host"), 120) or "smtp.gmail.com",
+            "port": port,
+            "user": user or current.get("user", ""),
+            # Champ laissé vide = on conserve le mot de passe déjà enregistré.
+            "pass": pwd or current.get("pass", ""),
+            "from": _clean(data.get("from"), 200) or user or current.get("from", ""),
+            "from_name": _clean(data.get("from_name"), 120) or current.get("from_name", ""),
+        }
+        _write_json(MAIL_FILE, cfg)
+        return self._send_json({"ok": True, "hasPassword": bool(cfg["pass"])})
 
     # ---- Commentaires d'articles ----
     def _add_comment(self, article_id):

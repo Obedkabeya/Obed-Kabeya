@@ -366,38 +366,88 @@
   function loadMailConfig() {
     fetch("/api/mailconfig")
       .then(r => r.json()).then(c => {
+        // Pré-remplir les champs (jamais le mot de passe : il n'est pas renvoyé)
+        if ($("smtpUser") && c.smtpUser) $("smtpUser").value = c.smtpUser;
+        if ($("smtpHost") && c.smtpHost) $("smtpHost").value = c.smtpHost;
+        if ($("smtpPort") && c.smtpPort) $("smtpPort").value = String(c.smtpPort);
+        if ($("smtpPassState")) {
+          $("smtpPassState").textContent = c.hasPassword
+            ? "✓ Un mot de passe est enregistré. Laissez vide pour le conserver."
+            : "Aucun mot de passe enregistré pour l'instant.";
+          $("smtpPassState").style.color = c.hasPassword ? "#1a7a4c" : "";
+        }
+
         const el = $("mailStatus"); if (!el) return;
+        const label = { smtp: "votre boîte e-mail (envoi direct)", brevo: "Brevo", sendgrid: "SendGrid" };
         if (c.active) {
-          el.textContent = "✓ L'envoi d'e-mail est ACTIF (via " + (c.provider || "?") + ", expéditeur : " + (c.from || "?") + ").";
+          el.textContent = "✓ L'envoi d'e-mail est ACTIF — " + (label[c.provider] || c.provider) +
+            ", expéditeur : " + (c.from || "?") + ".";
           el.style.color = "#1a7a4c";
         } else {
-          el.textContent = "⚠ L'envoi d'e-mail n'est PAS actif — ajoutez BREVO_API_KEY (et MAIL_FROM) dans les variables du serveur.";
+          el.textContent = "⚠ Aucune boîte e-mail connectée. Renseignez votre adresse et votre mot de passe d'application ci-dessus. (Vos messages restent visibles dans « Messages & contacts ».)";
           el.style.color = "#b3261e";
         }
-        // Diagnostic : quelles variables d'environnement le serveur voit-il réellement ?
         const diag = $("mailDetected");
-        if (diag) {
-          const d = c.detected || {};
-          const line = (name, ok) => "<li style=\"color:" + (ok ? "#1a7a4c" : "#8a8f98") +
-            "\">" + (ok ? "✓" : "○") + " " + name + " : " + (ok ? "détectée" : "absente") + "</li>";
-          diag.innerHTML = "<div style=\"font-size:.82rem;margin-top:.5rem\">Variables lues sur le serveur :" +
-            "<ul style=\"margin:.35rem 0 0;padding-left:1.1rem;list-style:none\">" +
-            line("BREVO_API_KEY", d.BREVO_API_KEY) +
-            line("MAIL_FROM", d.MAIL_FROM) +
-            line("SENDGRID_API_KEY", d.SENDGRID_API_KEY) +
-            line("SMTP_USER", d.SMTP_USER) +
-            line("SMTP_PASS", d.SMTP_PASS) +
-            "</ul></div>";
-        }
+        if (diag) diag.innerHTML = "";
       }).catch(() => {});
   }
+  // Enregistrer la connexion à la boîte e-mail
+  if ($("mailSave")) $("mailSave").addEventListener("click", () => {
+    const msg = $("mailMsg");
+    const user = $("smtpUser").value.trim();
+    if (!user) { msg.textContent = "Indiquez votre adresse e-mail."; msg.className = "form-msg err"; return; }
+    msg.textContent = "Enregistrement…"; msg.className = "form-msg";
+    fetch("/api/mailconfig", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user: user,
+        pass: $("smtpPass").value,          // vide = on garde celui déjà enregistré
+        host: $("smtpHost").value.trim(),
+        port: $("smtpPort").value,
+        from: user,
+      }),
+    }).then(r => r.json().then(j => ({ ok: r.ok, j }))).then(({ ok, j }) => {
+      if (!ok) throw new Error(j.error || "Erreur");
+      $("smtpPass").value = "";
+      msg.textContent = "✓ Connexion enregistrée. Faites un test d'envoi pour vérifier.";
+      msg.className = "form-msg ok";
+      loadMailConfig();
+    }).catch(err => { msg.textContent = err.message; msg.className = "form-msg err"; });
+  });
+
+  // Déconnecter la boîte e-mail (efface l'adresse et le mot de passe)
+  if ($("mailClear")) $("mailClear").addEventListener("click", () => {
+    if (!confirm("Déconnecter votre boîte e-mail ? Les messages continueront d'arriver dans « Messages & contacts ».")) return;
+    fetch("/api/mailconfig", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clear: true }),
+    }).then(() => {
+      $("smtpUser").value = ""; $("smtpPass").value = "";
+      $("mailMsg").textContent = "Boîte e-mail déconnectée."; $("mailMsg").className = "form-msg";
+      loadMailConfig();
+    });
+  });
+
   $("mailTest").addEventListener("click", () => {
     $("mailMsg").textContent = "Envoi du test…"; $("mailMsg").className = "form-msg";
     fetch("/api/mailtest", { method: "POST" })
       .then(r => r.json().then(j => ({ ok: r.ok, j }))).then(({ ok, j }) => {
-        if (ok && j.ok) { $("mailMsg").textContent = "✓ E-mail de test envoyé à " + j.to + ". Vérifiez votre boîte."; $("mailMsg").className = "form-msg ok"; }
+        if (ok && j.ok) { $("mailMsg").textContent = "✓ E-mail de test envoyé à " + j.to + ". Vérifiez votre boîte (et les spams)."; $("mailMsg").className = "form-msg ok"; }
         else throw new Error((j && j.error) || "Échec");
-      }).catch(err => { $("mailMsg").textContent = "Échec : " + err.message + " — vérifiez l'e-mail et le mot de passe d'application."; $("mailMsg").className = "form-msg err"; });
+      }).catch(err => {
+        const t = String(err.message || "");
+        // Distinguer « hébergeur qui bloque » de « identifiants incorrects »
+        let aide;
+        if (/timed out|timeout|unreachable|Network|refus/i.test(t)) {
+          aide = " → Votre hébergeur bloque l'envoi direct (fréquent en offre gratuite). Ce n'est pas votre mot de passe. Vos messages restent dans « Messages & contacts ».";
+        } else if (/auth|credential|password|535|Username/i.test(t)) {
+          aide = " → Mot de passe d'application refusé. Vérifiez les 16 lettres et que la validation en deux étapes est active.";
+        } else {
+          aide = "";
+        }
+        $("mailMsg").textContent = "Échec : " + t + aide;
+        $("mailMsg").className = "form-msg err";
+      });
   });
   $("pwSave").addEventListener("click", () => {
     const a = $("pwNew").value, b = $("pwConfirm").value;

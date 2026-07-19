@@ -358,20 +358,40 @@
         <!-- ===== COMPTE & E-MAIL ===== -->
         <div class="tabpanel" data-panel="compte">
           <div class="form-wrap" style="margin-bottom:2rem">
-            <h3>Recevoir les messages par e-mail</h3>
-            <p class="muted" style="font-size:.92rem">L'envoi se fait par <strong>API HTTP (Brevo)</strong> — port 443, jamais bloqué par Railway (contrairement au SMTP). Créez un compte gratuit sur <strong>brevo.com</strong>, vérifiez votre adresse d'expéditeur, générez une clé API, puis ajoutez ces <strong>variables d'environnement</strong> sur Railway :</p>
-            <ul class="muted" style="font-size:.92rem;line-height:1.9">
-              <li><code>BREVO_API_KEY</code> = votre clé API Brevo</li>
-              <li><code>MAIL_FROM</code> = votre adresse expéditrice <em>vérifiée</em> chez Brevo</li>
-              <li><em>(alternative)</em> <code>SENDGRID_API_KEY</code> si vous préférez SendGrid</li>
-            </ul>
-            <p class="hint" id="mailStatus" style="margin:.4rem 0 .2rem">Vérification de l'état…</p>
-            <div id="mailDetected" style="margin:0 0 1rem"></div>
+            <h3>Connecter votre boîte e-mail</h3>
+            <p class="muted" style="font-size:.92rem">Reliez directement votre adresse Gmail pour recevoir les messages du site. Vous avez besoin d'un <strong>mot de passe d'application</strong> (16 lettres) — ce n'est pas le mot de passe habituel de votre compte.</p>
+            <details style="margin:.6rem 0 1.2rem">
+              <summary style="cursor:pointer;font-weight:600;color:var(--navy)">Comment obtenir le mot de passe d'application Gmail&nbsp;?</summary>
+              <ol class="muted" style="font-size:.92rem;line-height:1.9;margin-top:.6rem">
+                <li>Activez la <strong>validation en deux étapes</strong> sur votre compte Google (obligatoire).</li>
+                <li>Allez sur <strong>myaccount.google.com/apppasswords</strong>.</li>
+                <li>Donnez un nom (ex. « Site KBO ») et validez.</li>
+                <li>Google affiche <strong>16 lettres</strong> : copiez-les et collez-les ci-dessous.</li>
+              </ol>
+            </details>
+
+            <div class="form-grid">
+              <div class="field"><label for="smtpUser">Votre adresse e-mail (Gmail)</label><input type="email" id="smtpUser" placeholder="vous@gmail.com" autocomplete="off" /></div>
+              <div class="field"><label for="smtpPass">Mot de passe d'application (16 lettres)</label><input type="password" id="smtpPass" placeholder="••••••••••••••••" autocomplete="new-password" /><span class="hint" id="smtpPassState"></span></div>
+              <div class="field"><label for="smtpHost">Serveur d'envoi</label><input type="text" id="smtpHost" value="smtp.gmail.com" /></div>
+              <div class="field">
+                <label for="smtpPort">Port</label>
+                <select id="smtpPort">
+                  <option value="465">465 (SSL — recommandé)</option>
+                  <option value="587">587 (TLS)</option>
+                </select>
+              </div>
+            </div>
             <div class="form-actions">
-              <button class="btn btn--primary" id="mailTest" type="button">Envoyer un e-mail de test</button>
+              <button class="btn btn--primary" id="mailSave" type="button">Enregistrer la connexion</button>
+              <button class="btn btn--ghost" id="mailTest" type="button">Envoyer un e-mail de test</button>
+              <button class="btn btn--ghost" id="mailClear" type="button">Déconnecter</button>
               <span class="form-msg" id="mailMsg"></span>
             </div>
-            <p class="hint">Les messages arriveront à l'adresse définie dans <strong>Réseaux &amp; Contact → Adresse e-mail de réception</strong>. Sans configuration, les messages restent enregistrés mais ne sont pas envoyés.</p>
+            <p class="hint" id="mailStatus" style="margin:.8rem 0 .2rem">Vérification de l'état…</p>
+            <div id="mailDetected" style="margin:0 0 1rem"></div>
+            <p class="hint">🔒 Votre mot de passe est enregistré uniquement sur votre serveur, n'est jamais réaffiché, et n'est jamais inclus dans les fichiers envoyés sur GitHub.</p>
+            <p class="hint"><strong>Important&nbsp;:</strong> certains hébergeurs (dont Railway en offre gratuite) bloquent l'envoi direct. Si le test échoue avec « délai dépassé » ou « réseau inaccessible », c'est l'hébergeur qui bloque, pas votre mot de passe. Dans ce cas vos messages restent tous consultables dans <strong>📥 Messages &amp; contacts</strong>.</p>
           </div>
 
           <div class="form-wrap">
