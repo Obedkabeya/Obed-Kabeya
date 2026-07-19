@@ -8,7 +8,7 @@
   <link rel="icon" href="images/favicon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body data-page="accueil">
@@ -24,12 +24,12 @@
           <hr class="divider" />
           <p class="lead" data-text="homeHeroLead">Former aux marchés, aider les entreprises à devenir bancables, conseiller les investisseurs. Trois métiers, une même exigence : comprendre avant d'agir, structurer avant de risquer.</p>
           <div class="hero__cta">
-            <a class="btn btn--primary" href="accompagnement.html#diagnostic">Tester ma bancabilité <span class="arrow">→</span></a>
-            <a class="btn btn--ghost" href="formation.html">Découvrir les formations</a>
+            <a class="btn btn--primary" href="formation.html">Découvrir les formations <span class="arrow">→</span></a>
+            <a class="btn btn--ghost" href="accompagnement.html#diagnostic">Tester ma bancabilité</a>
           </div>
         </div>
-        <div class="hero__portrait reveal">
-          <div data-diag="mini"></div>
+        <div class="hero__portrait reveal" data-slot="accueil-hero">
+          <img src="images/markets.svg" alt="KBO Corporate Finance" />
         </div>
       </div>
     </div>
@@ -71,27 +71,7 @@
     </div>
   </section>
 
-  <!-- CRÉDIBILITÉ INCARNÉE : le fondateur (un vrai visage, un vrai parcours) -->
-  <section class="section section--soft">
-    <div class="container narrow">
-      <div class="founder reveal">
-        <img id="heroPhoto" class="founder__photo" src="images/portrait.svg" alt="Portrait du fondateur de KBO Corporate Finance" />
-        <div>
-          <p class="eyebrow">Le fondateur</p>
-          <h2 data-text="homeFounderTitle" style="font-size:clamp(1.5rem,3vw,2rem)">Un praticien, pas un vendeur</h2>
-          <p class="muted" data-text="homeFounderText"><span data-text="name">Obed Kabeya</span> a fondé KBO Corporate Finance après une formation en banque et finance d'entreprise et une certification en finance des marchés. La conviction qui l'anime : la finance n'est pas réservée à une élite — elle se transmet, s'explique et se met au service de ceux qui construisent.</p>
-          <div class="founder__creds">
-            <span class="founder__cred">Licence banque &amp; finance d'entreprise</span>
-            <span class="founder__cred">Certification en finance des marchés</span>
-          </div>
-          <a class="btn btn--ghost mt-2" href="personnel.html">Découvrir le parcours <span class="arrow">→</span></a>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <div id="site-footer"></div>
   <script src="js/components.js"></script>
-  <script src="js/diagnostic.js"></script>
 </body>
 </html>

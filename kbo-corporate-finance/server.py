@@ -188,6 +188,21 @@ DEFAULT_TEXTS = {
         "pour la finance des marchés, l'écriture et la réflexion stratégique — avec la "
         "conviction qu'une décision lucide naît d'une pensée claire."
     ),
+    # Accueil (nouvelle structure — cabinet KBO)
+    "homeHeroLead": (
+        "Former aux marchés, aider les entreprises à devenir bancables, conseiller les "
+        "investisseurs. Trois métiers, une même exigence : comprendre avant d'agir, "
+        "structurer avant de risquer."
+    ),
+    "homePillarsTitle": "Ce que fait le cabinet",
+    "homeFounderTitle": "Un praticien, pas un vendeur",
+    "homeFounderText": (
+        "Obed Kabeya a fondé KBO Corporate Finance après une formation en banque et "
+        "finance d'entreprise et une certification en finance des marchés. La conviction "
+        "qui l'anime : la finance n'est pas réservée à une élite — elle se transmet, "
+        "s'explique et se met au service de ceux qui construisent."
+    ),
+    # Anciennes clés d'accueil — conservées pour compatibilité (n'apparaissent plus).
     "homePathsTitle": "Par où souhaitez-vous commencer ?",
     "homePathsIntro": (
         "Un versant personnel, fait de récits et de réflexions. Un versant professionnel, "

@@ -23,10 +23,12 @@
   --gold: #B8934A;            /* Or antique — accent de signature, usage rare */
   --gold-soft: #EFE4CC;
 
-  /* Type — Fraunces (serif patrimoniale, titres) prolonge le « KBO » du logo ;
-     Inter (grotesque) prolonge le « Corporate Finance » ; IBM Plex Mono pour
-     les chiffres financiers (rigueur : les nombres traités comme des données). */
-  --display: "Fraunces", Georgia, "Times New Roman", serif;
+  /* Type — les GRANDS TITRES utilisent Archivo : une grotesque solide, établie,
+     corporate (pas de serif « habillé »). Le sigle « KBO » garde une serif forte
+     (--display) pour rester fidèle au logo. Inter pour le corps, IBM Plex Mono
+     pour les chiffres financiers (rigueur : les nombres traités comme des données). */
+  --title: "Archivo", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  --display: "Fraunces", Georgia, "Times New Roman", serif; /* sigle KBO uniquement */
   --serif: var(--display); /* alias historique */
   --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -58,9 +60,9 @@ body {
 img { max-width: 100%; display: block; }
 a { color: var(--blue); text-decoration: none; transition: color 0.2s var(--ease); }
 a:hover { color: var(--blue-bright); }
-h1, h2, h3, h4 { font-family: var(--display); font-weight: 700; color: var(--navy); line-height: 1.08; margin: 0 0 0.5em; letter-spacing: -0.012em; font-optical-sizing: auto; }
-h1 { font-size: clamp(2.3rem, 5.6vw, 3.7rem); font-weight: 900; }
-h2 { font-size: clamp(1.75rem, 3.6vw, 2.5rem); font-weight: 800; }
+h1, h2, h3, h4 { font-family: var(--title); font-weight: 800; color: var(--navy); line-height: 1.1; margin: 0 0 0.5em; letter-spacing: -0.02em; }
+h1 { font-size: clamp(2.2rem, 5.4vw, 3.6rem); font-weight: 900; }
+h2 { font-size: clamp(1.7rem, 3.6vw, 2.45rem); font-weight: 800; }
 h3 { font-size: clamp(1.25rem, 2.3vw, 1.55rem); font-weight: 700; }
 p { margin: 0 0 1.1em; }
 
@@ -827,3 +829,72 @@ input[type="range"].diag-range:focus-visible { outline: 2px solid var(--gold); o
 .founder__creds { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem; }
 .founder__cred { font-size: 0.82rem; font-weight: 600; color: var(--navy); background: var(--paper-tint); border-radius: 100px; padding: 0.4em 0.9em; }
 @media (max-width: 560px) { .founder { grid-template-columns: 1fr; text-align: center; } .founder__photo { margin-inline: auto; } .founder__creds { justify-content: center; } }
+
+/* =========================================================
+   FORMATION — hero image de fond + fiches détail (modale) + paiement
+   ========================================================= */
+
+/* Hero avec image de fond éditable + dégradé foncé, texte en blanc */
+.hero-bg { position: relative; overflow: hidden; border-bottom: 0; }
+.hero-bg__media { position: absolute; inset: 0; z-index: 0; }
+.hero-bg__media img, .hero-bg__media .slot-carousel { width: 100%; height: 100%; object-fit: cover; }
+.hero-bg__media .slot-track img { height: 100%; }
+.hero-bg__scrim { position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(180deg, rgba(11,20,45,0.55) 0%, rgba(11,20,45,0.80) 100%); }
+.hero-bg__content { position: relative; z-index: 2; color: #fff; padding-block: clamp(56px, 10vw, 120px); }
+.hero-bg__content .eyebrow { color: #cdddff; }
+.hero-bg__content h1 { color: #fff; }
+.hero-bg__content .lead { color: rgba(255,255,255,0.92); }
+.hero-bg__content .divider { background: var(--gold); }
+/* En mode édition, l'image passe au-dessus pour rendre ses boutons cliquables */
+body.editing .hero-bg__media { z-index: 4; }
+
+/* Fiches formation cliquables */
+.formation-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.4rem; }
+.fcard { text-align: left; cursor: pointer; background: #fff; border: 1px solid var(--line);
+  border-radius: 14px; padding: 1.7rem; display: flex; flex-direction: column;
+  transition: transform .2s var(--ease), box-shadow .2s var(--ease), border-color .2s var(--ease); }
+.fcard:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); border-color: var(--navy); }
+.fcard--feature { border-color: var(--navy); }
+.fcard__badge { align-self: flex-start; font-family: var(--mono); font-size: .68rem; letter-spacing: .1em;
+  text-transform: uppercase; font-weight: 600; color: var(--gold); margin-bottom: .9rem; }
+.fcard h3 { margin-bottom: .4rem; }
+.fcard__desc { color: var(--gray); font-size: .95rem; flex: 1; margin-bottom: 1rem; }
+.fcard__price { display: flex; align-items: baseline; gap: .35em; margin-bottom: 1rem; }
+.fcard__amount { font-family: var(--mono); font-size: 1.9rem; font-weight: 600; color: var(--navy); line-height: 1; }
+.fcard__unit { font-size: .9rem; color: var(--gray); }
+.fcard__more { font-weight: 600; color: var(--navy); display: inline-flex; align-items: center; gap: .5em; }
+.fcard:hover .fcard__more .arrow { transform: translateX(4px); }
+
+/* Modale de détail */
+.fmodal { position: fixed; inset: 0; z-index: 300; display: grid; place-items: center; padding: 1rem;
+  background: rgba(11,18,35,0.62); backdrop-filter: blur(3px); }
+.fmodal__box { background: #fff; border-radius: 16px; max-width: 740px; width: 100%; max-height: 90vh;
+  overflow-y: auto; padding: clamp(1.5rem, 4vw, 2.6rem); position: relative; box-shadow: 0 30px 80px -20px rgba(11,18,35,.5); }
+.fmodal__close { position: absolute; top: .9rem; right: .9rem; width: 40px; height: 40px; border-radius: 50%;
+  border: 1px solid var(--line); background: #fff; cursor: pointer; font-size: 1.2rem; color: var(--ink);
+  display: grid; place-items: center; line-height: 1; }
+.fmodal__close:hover { background: var(--paper-tint); }
+.fmodal__badge { font-family: var(--mono); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--gold); font-weight: 600; }
+.fmodal h3 { font-size: clamp(1.2rem,2.6vw,1.7rem); margin: .3rem 0 .2rem; }
+.fmodal__price { font-family: var(--mono); font-weight: 600; color: var(--navy); font-size: 1.15rem; margin-bottom: 1.2rem; }
+.fmodal__block { margin-bottom: 1.3rem; }
+.fmodal__block h4 { font-family: var(--title); font-size: 1rem; color: var(--navy); margin: 0 0 .4rem; text-transform: uppercase; letter-spacing: .04em; font-size: .82rem; }
+.fmodal__block p { color: var(--ink); margin: 0; }
+.fmodal__modules { list-style: none; margin: 0; padding: 0; }
+.fmodal__modules li { position: relative; padding-left: 1.7rem; margin-bottom: .55rem; color: var(--ink); }
+.fmodal__modules li::before { content: ""; position: absolute; left: 0; top: .5em; width: 9px; height: 9px;
+  border-left: 2px solid var(--gold); border-bottom: 2px solid var(--gold); transform: rotate(-45deg); }
+.fmodal__cta { display: flex; gap: .8rem; flex-wrap: wrap; margin-top: 1.6rem; padding-top: 1.4rem; border-top: 1px solid var(--line); }
+
+/* Page paiement */
+.pay-methods { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.2rem; }
+.pay-card { border: 1px solid var(--line); border-radius: 14px; padding: 1.6rem; background: #fff; }
+.pay-card__icon { width: 44px; height: 44px; border-radius: 10px; display: grid; place-items: center;
+  background: var(--paper-tint); color: var(--navy); margin-bottom: 1rem; }
+.pay-card__icon svg { width: 24px; height: 24px; }
+.pay-card h4 { margin-bottom: .4rem; }
+.pay-card p { color: var(--gray); font-size: .94rem; margin-bottom: 1rem; }
+.pay-note { background: var(--gold-soft); border-left: 3px solid var(--gold); border-radius: 0 8px 8px 0;
+  padding: 1rem 1.3rem; color: #5c4a24; font-size: .92rem; }

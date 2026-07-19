@@ -73,6 +73,7 @@
     const texts = s.texts || {};
     document.querySelectorAll("[data-textkey]").forEach(el => { el.value = texts[el.dataset.textkey] || ""; });
     $("email").value = s.email || "";
+    if ($("whatsapp")) $("whatsapp").value = s.whatsapp || "";
     const social = s.social || {};
     SOCIAL.forEach(k => { $(k).value = social[k] || ""; });
     currentPhoto = s.photo || "images/portrait.svg";
@@ -107,7 +108,7 @@
     }
     const texts = {}; document.querySelectorAll("[data-textkey]").forEach(el => { texts[el.dataset.textkey] = el.value.trim(); });
     const social = {}; SOCIAL.forEach(k => { social[k] = $(k).value.trim(); });
-    const payload = { email: $("email").value.trim(), photo: currentPhoto, social, texts };
+    const payload = { email: $("email").value.trim(), whatsapp: ($("whatsapp") ? $("whatsapp").value.trim() : ""), photo: currentPhoto, social, texts };
     $("saveBtn").disabled = true; $("saveMsg").textContent = "Enregistrement…"; $("saveMsg").className = "form-msg";
     fetch("/api/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) })
       .then(r => r.json().then(j => ({ ok: r.ok, j })))
