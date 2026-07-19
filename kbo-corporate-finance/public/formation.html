@@ -46,21 +46,21 @@
         <p class="muted">Cliquez sur une formation pour en voir le détail : ce que c'est, pour qui, et les modules.</p>
       </div>
       <div class="formation-cards reveal">
-        <button type="button" class="fcard" data-open="modal-trading">
+        <a class="fcard" href="formation-trading.html">
           <span class="fcard__badge">Grand public · Mentorat</span>
           <h3>Trading</h3>
           <p class="fcard__desc">Apprendre à trader concrètement, avec un accompagnement continu et une vraie discipline du risque. Adhésion directe, à votre rythme.</p>
           <div class="fcard__price"><span class="fcard__amount">89&nbsp;€</span><span class="fcard__unit">/ mois · ou 800&nbsp;€ / an</span></div>
           <span class="fcard__more">Voir le détail <span class="arrow">→</span></span>
-        </button>
+        </a>
 
-        <button type="button" class="fcard fcard--feature" data-open="modal-finance">
+        <a class="fcard fcard--feature" href="formation-finance.html">
           <span class="fcard__badge">Professionnels · Certification</span>
           <h3>Finance de marché</h3>
           <p class="fcard__desc">Un cursus avancé, au niveau des collaborateurs en poste en SGI et dans le secteur financier. Accès sur candidature.</p>
           <div class="fcard__price"><span class="fcard__amount">900&nbsp;€</span><span class="fcard__unit">· paiement en 3 tranches</span></div>
           <span class="fcard__more">Voir le détail <span class="arrow">→</span></span>
-        </button>
+        </a>
       </div>
     </div>
   </section>
@@ -76,109 +76,8 @@
     </div>
   </section>
 
-  <!-- ===== MODALE : TRADING ===== -->
-  <div class="fmodal" id="modal-trading" hidden>
-    <div class="fmodal__box" role="dialog" aria-modal="true" aria-labelledby="mt-title">
-      <button type="button" class="fmodal__close" data-close aria-label="Fermer">✕</button>
-      <span class="fmodal__badge">Grand public · Mentorat</span>
-      <h3 id="mt-title">Trading</h3>
-      <p class="fmodal__price">89&nbsp;€ / mois — ou 800&nbsp;€ / an</p>
-
-      <div class="fmodal__block">
-        <h4>Ce que c'est</h4>
-        <p>Un mentorat continu pour apprendre à trader pour de vrai : lire les marchés, construire une stratégie, et surtout gérer le risque et vos émotions. On avance par paliers — découverte, pratique encadrée, autonomie — sans jamais brûler les étapes.</p>
-      </div>
-      <div class="fmodal__block">
-        <h4>Pourquoi c'est important</h4>
-        <p>La plupart des pertes ne viennent pas d'un manque d'intelligence, mais d'un manque de méthode. Un accompagnement dans la durée vous évite les erreurs coûteuses des débuts et installe des réflexes qui protègent votre capital.</p>
-      </div>
-      <div class="fmodal__block">
-        <h4>À qui ça s'adresse</h4>
-        <p>Aux débutants sérieux et aux autodidactes qui tradent déjà mais veulent une méthode structurée. Aucun prérequis, sinon la volonté de travailler avec constance et discipline.</p>
-      </div>
-      <div class="fmodal__block">
-        <h4>Les modules</h4>
-        <ul class="fmodal__modules">
-          <li><strong>Fondamentaux</strong> — structure des marchés, produits, formation des prix.</li>
-          <li><strong>Analyse</strong> — lecture des graphiques, tendances et cycles.</li>
-          <li><strong>Stratégie</strong> — construire et documenter un plan de trading.</li>
-          <li><strong>Gestion du risque</strong> — taille de position, stop-loss, protection du capital.</li>
-          <li><strong>Psychologie</strong> — discipline, journal de trading, maîtrise émotionnelle.</li>
-        </ul>
-      </div>
-      <div class="fmodal__cta">
-        <a class="btn btn--primary" href="paiement.html?formation=Trading">Adhérer au mentorat <span class="arrow">→</span></a>
-        <a class="btn btn--ghost" data-wa-link data-wa-msg="Bonjour, j'ai une question sur le mentorat Trading." href="contact.html">Poser une question</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- ===== MODALE : FINANCE DE MARCHÉ ===== -->
-  <div class="fmodal" id="modal-finance" hidden>
-    <div class="fmodal__box" role="dialog" aria-modal="true" aria-labelledby="mf-title">
-      <button type="button" class="fmodal__close" data-close aria-label="Fermer">✕</button>
-      <span class="fmodal__badge">Professionnels · Certification</span>
-      <h3 id="mf-title">Finance de marché</h3>
-      <p class="fmodal__price">900&nbsp;€ — paiement possible en 3 tranches</p>
-
-      <div class="fmodal__block">
-        <h4>Ce que c'est</h4>
-        <p>Un cursus avancé, orienté certification, qui ne réexplique pas les bases mais les approfondit : microstructure de marché, produits dérivés, analyse quantitative du risque, construction et backtest de stratégies, cadre d'exécution.</p>
-      </div>
-      <div class="fmodal__block">
-        <h4>Pourquoi c'est important</h4>
-        <p>Dans une salle ou une SGI, la rigueur technique fait la différence. Cette formation travaille sur des cas réels, avec l'exigence attendue d'un praticien qui engage un capital — le sien ou celui de ses clients.</p>
-      </div>
-      <div class="fmodal__block">
-        <h4>À qui ça s'adresse</h4>
-        <p>Aux collaborateurs déjà en poste — en SGI, en salle de marché ou dans une fonction financière — qui veulent porter leur maîtrise des marchés au niveau supérieur.</p>
-      </div>
-      <div class="fmodal__block">
-        <h4>Les modules</h4>
-        <ul class="fmodal__modules">
-          <li><strong>Microstructure &amp; produits dérivés</strong> — mécanismes fins et instruments.</li>
-          <li><strong>Analyse quantitative du risque</strong> — mesurer, encadrer, décider.</li>
-          <li><strong>Stratégie &amp; backtest</strong> — concevoir et éprouver sur données.</li>
-          <li><strong>Cadre d'exécution</strong> — passage d'ordres, coûts, contraintes réelles.</li>
-          <li><strong>Discipline &amp; pratique</strong> — méthode d'un professionnel en activité.</li>
-        </ul>
-      </div>
-      <div class="fmodal__cta">
-        <a class="btn btn--primary" href="candidature.html?formation=Finance des marchés">Déposer une candidature <span class="arrow">→</span></a>
-        <a class="btn btn--ghost" data-wa-link data-wa-msg="Bonjour, j'ai une question sur la formation Finance de marché." href="contact.html">Poser une question</a>
-      </div>
-    </div>
-  </div>
-
   <div id="site-footer"></div>
   <script src="js/components.js"></script>
   <script src="js/forms.js"></script>
-  <script>
-    // Ouverture/fermeture des fiches détail (modales)
-    (function () {
-      const openers = document.querySelectorAll("[data-open]");
-      let lastFocus = null;
-      function open(id) {
-        const m = document.getElementById(id);
-        if (!m) return;
-        lastFocus = document.activeElement;
-        m.hidden = false;
-        document.body.style.overflow = "hidden";
-        const c = m.querySelector("[data-close]"); if (c) c.focus();
-      }
-      function close(m) {
-        m.hidden = true;
-        document.body.style.overflow = "";
-        if (lastFocus) lastFocus.focus();
-      }
-      openers.forEach(b => b.addEventListener("click", () => open(b.getAttribute("data-open"))));
-      document.querySelectorAll(".fmodal").forEach(m => {
-        m.addEventListener("click", e => { if (e.target === m || e.target.hasAttribute("data-close")) close(m); });
-      });
-      document.addEventListener("keydown", e => {
-        if (e.key === "Escape") document.querySelectorAll(".fmodal:not([hidden])").forEach(close);
-      });
-    })();
-  </script>
 </body>
 </html>

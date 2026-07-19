@@ -819,7 +819,7 @@ input[type="range"].diag-range:focus-visible { outline: 2px solid var(--gold); o
 /* ---- Registres de contenu / bandeaux publics ---- */
 .audience-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.2rem; }
 .audience-card { border: 1px solid var(--line); border-radius: 12px; padding: 1.6rem; background: #fff; }
-.audience-card__k { font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--gold); }
+.audience-card__k { font-family: var(--sans); font-size: 0.82rem; font-weight: 700; letter-spacing: 0.01em; color: var(--gold); }
 .audience-card h4 { margin: 0.4rem 0 0.5rem; }
 .audience-card p { color: var(--gray); margin: 0 0 1rem; }
 
@@ -856,8 +856,8 @@ body.editing .hero-bg__media { z-index: 4; }
   transition: transform .2s var(--ease), box-shadow .2s var(--ease), border-color .2s var(--ease); }
 .fcard:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); border-color: var(--navy); }
 .fcard--feature { border-color: var(--navy); }
-.fcard__badge { align-self: flex-start; font-family: var(--mono); font-size: .68rem; letter-spacing: .1em;
-  text-transform: uppercase; font-weight: 600; color: var(--gold); margin-bottom: .9rem; }
+.fcard__badge { align-self: flex-start; font-family: var(--sans); font-size: .82rem; letter-spacing: .01em;
+  font-weight: 700; color: var(--gold); margin-bottom: .9rem; }
 .fcard h3 { margin-bottom: .4rem; }
 .fcard__desc { color: var(--gray); font-size: .95rem; flex: 1; margin-bottom: 1rem; }
 .fcard__price { display: flex; align-items: baseline; gap: .35em; margin-bottom: 1rem; }
@@ -898,3 +898,37 @@ body.editing .hero-bg__media { z-index: 4; }
 .pay-card p { color: var(--gray); font-size: .94rem; margin-bottom: 1rem; }
 .pay-note { background: var(--gold-soft); border-left: 3px solid var(--gold); border-radius: 0 8px 8px 0;
   padding: 1rem 1.3rem; color: #5c4a24; font-size: .92rem; }
+
+/* =========================================================
+   ACCUEIL — sections inspirées FTMO (charte KBO conservée)
+   ========================================================= */
+
+/* Bande de statistiques (compteurs animés) sur fond encre */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: clamp(1.6rem, 4vw, 3rem); text-align: center; }
+.stat__value { font-family: var(--mono); font-size: clamp(2.3rem, 6vw, 3.4rem); font-weight: 600; color: #fff; line-height: 1; letter-spacing: -0.02em; }
+.stat__value .suffix { color: var(--gold); }
+.stat__label { color: #aebbd6; font-size: 0.95rem; margin-top: 0.6rem; line-height: 1.4; }
+
+/* Cartes des trois pôles (survol type FTMO) */
+.pole-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.4rem; }
+.pole-card { position: relative; display: flex; flex-direction: column; background: #fff; border: 1px solid var(--line);
+  border-radius: 16px; padding: 1.9rem; text-decoration: none; color: inherit; overflow: hidden;
+  transition: transform .24s var(--ease), box-shadow .24s var(--ease), border-color .24s var(--ease); }
+.pole-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--gold);
+  transform: scaleY(0); transform-origin: top; transition: transform .28s var(--ease); }
+.pole-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-md); border-color: var(--navy); }
+.pole-card:hover::before { transform: scaleY(1); }
+.pole-card__num { font-family: var(--mono); font-size: 0.85rem; color: var(--gold); font-weight: 600; margin-bottom: 0.9rem; }
+.pole-card h3 { margin-bottom: 0.5rem; }
+.pole-card p { color: var(--gray); flex: 1; margin-bottom: 1.2rem; }
+.pole-card__link { font-weight: 700; color: var(--navy); display: inline-flex; align-items: center; gap: 0.5em; }
+.pole-card:hover .pole-card__link .arrow { transform: translateX(4px); }
+
+/* Média showcase (grand espace image/vidéo éditable) */
+.showcase__media { border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-md); aspect-ratio: 16/10; background: var(--paper-tint); position: relative; }
+.showcase__media img, .showcase__media video, .showcase__media .slot-carousel { width: 100%; height: 100%; object-fit: cover; }
+.showcase__play { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+.showcase__play span { width: 68px; height: 68px; border-radius: 50%; background: rgba(255,255,255,.92); display: grid; place-items: center; box-shadow: var(--shadow-md); }
+.showcase__play span::after { content: ""; border-left: 20px solid var(--navy); border-top: 12px solid transparent; border-bottom: 12px solid transparent; margin-left: 5px; }
+
+/* Reveal : léger décalage progressif possible via style inline transition-delay */

@@ -35,43 +35,125 @@
     </div>
   </section>
 
+  <!-- BANDE DE STATISTIQUES (compteurs animés) -->
+  <section class="section section--ink" style="padding-block:clamp(40px,6vw,72px)">
+    <div class="container">
+      <div class="stats reveal">
+        <div class="stat"><div class="stat__value" data-count="10" data-suffix="+">0</div><div class="stat__label">années sur les marchés</div></div>
+        <div class="stat"><div class="stat__value" data-count="3">0</div><div class="stat__label">pôles d'expertise</div></div>
+        <div class="stat"><div class="stat__value" data-count="8">0</div><div class="stat__label">pays — accès au marché régional (BRVM)</div></div>
+        <div class="stat"><div class="stat__value" data-count="0"><span class="suffix">0</span></div><div class="stat__label">promesse de gain — que de la méthode</div></div>
+      </div>
+    </div>
+  </section>
+
   <!-- LIGNE SIGNATURE -->
   <div class="section-mark"><span class="signature-line reveal-line"></span></div>
 
-  <!-- TROIS PILIERS séparés par la ligne verticale signature, CTA distincts -->
+  <!-- TROIS PÔLES (cartes) -->
   <section class="section">
     <div class="container">
-      <div class="center reveal" style="max-width:640px;margin-inline:auto;margin-bottom:3rem">
+      <div class="center reveal" style="max-width:640px;margin-inline:auto;margin-bottom:2.6rem">
         <p class="eyebrow">Trois pôles</p>
         <h2 data-text="homePillarsTitle">Ce que fait le cabinet</h2>
         <hr class="divider" style="margin-inline:auto" />
       </div>
-      <div class="pillars reveal">
-        <div class="pillar">
-          <span class="pillar__num">01</span>
+      <div class="pole-cards reveal">
+        <a class="pole-card" href="formation.html">
+          <span class="pole-card__num">01</span>
           <h3>Formation</h3>
-          <p class="pillar__tag">Apprendre à lire et affronter les marchés — de l'initiation grand public au niveau des professionnels du secteur.</p>
-          <a class="pillar__cta" href="formation.html">Voir les formations <span class="arrow">→</span></a>
-        </div>
-        <div class="pillars__rule" aria-hidden="true"></div>
-        <div class="pillar">
-          <span class="pillar__num">02</span>
+          <p>Apprendre à lire et affronter les marchés — de l'initiation grand public au niveau des professionnels du secteur.</p>
+          <span class="pole-card__link">Voir les formations <span class="arrow">→</span></span>
+        </a>
+        <a class="pole-card" href="accompagnement.html">
+          <span class="pole-card__num">02</span>
           <h3>Accompagnement</h3>
-          <p class="pillar__tag">Structurer votre activité pour devenir bancable, avec un diagnostic gratuit et un parcours clair, étape par étape.</p>
-          <a class="pillar__cta" href="accompagnement.html">Rendre mon activité bancable <span class="arrow">→</span></a>
-        </div>
-        <div class="pillars__rule" aria-hidden="true"></div>
-        <div class="pillar">
-          <span class="pillar__num">03</span>
+          <p>Structurer votre activité pour devenir bancable, avec un diagnostic gratuit et un parcours clair, étape par étape.</p>
+          <span class="pole-card__link">Devenir bancable <span class="arrow">→</span></span>
+        </a>
+        <a class="pole-card" href="conseil.html">
+          <span class="pole-card__num">03</span>
           <h3>Conseil</h3>
-          <p class="pillar__tag">Investir avec méthode : définir vos objectifs, construire une allocation cohérente et garder le cap dans la durée.</p>
-          <a class="pillar__cta" href="conseil.html">Explorer le conseil <span class="arrow">→</span></a>
+          <p>Investir avec méthode : définir vos objectifs, construire une allocation cohérente et garder le cap dans la durée.</p>
+          <span class="pole-card__link">Explorer le conseil <span class="arrow">→</span></span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMMENT NOUS TRAVAILLONS -->
+  <section class="section section--soft">
+    <div class="container">
+      <div class="reveal" style="max-width:640px;margin-bottom:2.4rem">
+        <p class="eyebrow">Comment nous travaillons</p>
+        <h2 data-text="homeProcessTitle">Une même exigence, à chaque étape</h2>
+        <hr class="divider" />
+        <p class="muted" data-text="homeProcessLead">Comprendre avant d'agir, structurer avant de risquer, transmettre ce qui a fait ses preuves. Trois principes qui guident chaque formation, chaque dossier et chaque conseil.</p>
+      </div>
+      <div class="audience-strip reveal">
+        <div class="audience-card"><span class="audience-card__k">Étape 01</span><h4>Comprendre</h4><p>On part de votre situation réelle — pas d'un modèle générique. On écoute, on mesure, on clarifie l'objectif.</p></div>
+        <div class="audience-card"><span class="audience-card__k">Étape 02</span><h4>Structurer</h4><p>On met en place la méthode : un plan, des repères, une gestion du risque. Rien d'improvisé.</p></div>
+        <div class="audience-card"><span class="audience-card__k">Étape 03</span><h4>Transmettre</h4><p>On vous rend autonome : vous comprenez ce que vous faites et pourquoi. La confiance vient de là.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MÉDIA SHOWCASE (grand espace image/vidéo éditable) -->
+  <section class="section">
+    <div class="container">
+      <div class="feature">
+        <div class="reveal">
+          <p class="eyebrow">En vidéo</p>
+          <h2 data-text="homeShowcaseTitle">La finance, expliquée simplement</h2>
+          <hr class="divider" />
+          <p class="muted" data-text="homeShowcaseText">Des marchés régionaux à la bancarisation d'une petite entreprise, nous rendons des sujets réputés complexes clairs et actionnables. Placez ici votre vidéo de présentation ou une image forte.</p>
+          <a class="btn btn--ghost mt-2" href="ressources.html">Voir les ressources <span class="arrow">→</span></a>
         </div>
+        <div class="showcase__media reveal" data-slot="accueil-showcase">
+          <img src="images/strategy.svg" alt="Présentation KBO Corporate Finance" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA FINAL (sombre) -->
+  <section class="section section--ink">
+    <div class="container center reveal">
+      <h2 data-text="homeCtaTitle">Par où souhaitez-vous commencer&nbsp;?</h2>
+      <hr class="divider" style="margin-inline:auto" />
+      <p style="max-width:560px;margin-inline:auto;color:#d7e0f2" data-text="homeCtaText">Une formation, un diagnostic de bancabilité, un conseil en investissement — dites-nous où vous en êtes, on avance ensemble.</p>
+      <div style="margin-top:1.6rem;display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+        <a class="btn btn--primary" href="formation.html">Découvrir les formations <span class="arrow">→</span></a>
+        <a class="btn btn--light" data-wa-link data-wa-msg="Bonjour, je découvre KBO Corporate Finance." href="contact.html">Nous écrire sur WhatsApp</a>
       </div>
     </div>
   </section>
 
   <div id="site-footer"></div>
   <script src="js/components.js"></script>
+  <script>
+    // Compteurs animés : lancent le comptage quand la bande entre dans l'écran.
+    (function () {
+      var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      function run(el) {
+        var to = parseInt(el.getAttribute("data-count"), 10) || 0;
+        var suffix = el.getAttribute("data-suffix") || "";
+        if (reduce || to === 0) { el.innerHTML = to + (suffix ? '<span class="suffix">' + suffix + '</span>' : ''); return; }
+        var start = null, dur = 1200;
+        function step(ts) {
+          if (!start) start = ts;
+          var p = Math.min((ts - start) / dur, 1);
+          var val = Math.round((1 - Math.pow(1 - p, 3)) * to);
+          el.innerHTML = val + (suffix ? '<span class="suffix">' + suffix + '</span>' : '');
+          if (p < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      }
+      var obs = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) { if (en.isIntersecting) { run(en.target); obs.unobserve(en.target); } });
+      }, { threshold: 0.4 });
+      document.querySelectorAll(".stat__value[data-count]").forEach(function (el) { obs.observe(el); });
+    })();
+  </script>
 </body>
 </html>

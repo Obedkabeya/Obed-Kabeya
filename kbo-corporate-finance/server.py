@@ -195,6 +195,23 @@ DEFAULT_TEXTS = {
         "structurer avant de risquer."
     ),
     "homePillarsTitle": "Ce que fait le cabinet",
+    "homeProcessTitle": "Une même exigence, à chaque étape",
+    "homeProcessLead": (
+        "Comprendre avant d'agir, structurer avant de risquer, transmettre ce qui a "
+        "fait ses preuves. Trois principes qui guident chaque formation, chaque dossier "
+        "et chaque conseil."
+    ),
+    "homeShowcaseTitle": "La finance, expliquée simplement",
+    "homeShowcaseText": (
+        "Des marchés régionaux à la bancarisation d'une petite entreprise, nous rendons "
+        "des sujets réputés complexes clairs et actionnables. Placez ici votre vidéo de "
+        "présentation ou une image forte."
+    ),
+    "homeCtaTitle": "Par où souhaitez-vous commencer ?",
+    "homeCtaText": (
+        "Une formation, un diagnostic de bancabilité, un conseil en investissement — "
+        "dites-nous où vous en êtes, on avance ensemble."
+    ),
     "homeFounderTitle": "Un praticien, pas un vendeur",
     "homeFounderText": (
         "Obed Kabeya a fondé KBO Corporate Finance après une formation en banque et "
